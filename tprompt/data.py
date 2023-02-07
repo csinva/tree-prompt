@@ -2,6 +2,7 @@ import datasets
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
+import imodelsx.util
 
 def load_huggingface_dataset(dataset_name, subsample_frac=1.0):
     """Load text dataset from huggingface (with train/validation spltis) + return the relevant dataset key
@@ -39,11 +40,25 @@ def load_huggingface_dataset(dataset_name, subsample_frac=1.0):
         ))
     return dset, dataset_key_text
 
-def convert_text_data_to_counts_array(dset, dataset_key_text):
-    v = CountVectorizer()
-    X_train = v.fit_transform(dset['train'][dataset_key_text])
-    y_train = dset['train']['label']
-    X_test = v.transform(dset['validation'][dataset_key_text])
-    y_test = dset['validation']['label']
+def convert_text_data_to_counts_array(
+    X_train, X_test, ngrams=2, all_ngrams=True,
+    tokenizer=None,
+    ):
+    if tokenizer == None:
+        tokenizer = imodelsx.util.get_spacy_tokenizer()
+        
+    if all_ngrams:
+        ngram_range=(1, ngrams)
+    else:
+        ngram_range=(ngrams, ngrams)
+
+    v = CountVectorizer(
+        ngram_range=ngram_range,
+        tokenizer=tokenizer,
+        lowercase=True,
+        token_pattern=None,
+    )
+    X_train = v.fit_transform(X_train)
+    X_test = v.transform(X_test)
     feature_names = v.get_feature_names_out().tolist()
-    return X_train, X_test, y_train, y_test, feature_names
+    return X_train, X_test, feature_names

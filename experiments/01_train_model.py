@@ -3,17 +3,19 @@ from copy import deepcopy
 import logging
 import random
 from collections import defaultdict
-from os.path import join
+from os.path import join, dirname
 import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 import pickle as pkl
-import imodels
+import imodelsx.data
 import inspect
+import os
 
-import tprompt.model
+import tprompt.tree
 import tprompt.data
 import cache_save_utils
+path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
 
 def fit_model(model, X_train, y_train, feature_names, r):
@@ -54,14 +56,12 @@ def add_main_args(parser):
     # training misc args
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed')
-    parser.add_argument('--save_dir', type=str, default='results',
+    parser.add_argument('--save_dir', type=str, default=join(path_to_repo, 'results', 'tmp'),
                         help='directory for saving')
 
     # model args
-    parser.add_argument('--model_name', type=str, choices=['decision_tree', 'ridge'],
-                        default='decision_tree', help='name of model')
-    parser.add_argument('--alpha', type=float, default=1,
-                        help='regularization strength')
+    parser.add_argument('--split_strategy', type=str, choices=['iprompt', 'cart', 'linear'],
+                        default='iprompt', help='strategy to use to split each stump')
     parser.add_argument('--max_depth', type=int,
                         default=2, help='max depth of tree')
     return parser
@@ -71,6 +71,8 @@ def add_computational_args(parser):
     """
     parser.add_argument('--use_cache', type=int, default=1, choices=[0, 1],
                         help='whether to check for cache')
+    parser.add_argument('--use_verbose', type=int, default=1, choices=[0, 1],
+                        help='whether to print verbosely')
     return parser
 
 if __name__ == '__main__':
@@ -103,14 +105,23 @@ if __name__ == '__main__':
     # torch.manual_seed(args.seed)
 
     # load text data
-    dset, dataset_key_text = tprompt.data.load_huggingface_dataset(
-        dataset_name=args.dataset_name, subsample_frac=args.subsample_frac)
-    X_train, X_test, y_train, y_test, feature_names = tprompt.data.convert_text_data_to_counts_array(
-        dset, dataset_key_text)    
-    X_train, X_cv, y_train, y_cv = train_test_split(X_train, y_train, test_size=0.33, random_state=args.seed)    
+    X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
+        dataset_name=args.dataset_name, subsample_frac=args.subsample_frac,
+        return_lists=True, binary_classification=True,
+    )
+    # get converted tabular data too just in case
+    X_train, X_test, feature_names = \
+        tprompt.data.convert_text_data_to_counts_array(
+            X_train_text, X_test_text, ngrams=2)
+    X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
+        X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
 
     # load model
-    model = tprompt.model.get_model(args)
+    model = tprompt.tree.Tree(
+        max_depth=args.max_depth,
+        split_strategy=args.split_strategy,
+        verbose=args.use_verbose,
+    )
 
     # set up saving dictionary + save params file
     r = defaultdict(list)

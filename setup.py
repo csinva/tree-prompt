@@ -15,6 +15,7 @@ required_pypi = [
     'imodelsx',
     'transformers',
     'datasets',
+    'spacy',
 
     'datasets', # optional, required for getting NLP datasets
     'pytest', # optional, required for running tests
