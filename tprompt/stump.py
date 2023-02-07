@@ -4,7 +4,10 @@ from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 import imodels
 import imodelsx.util
+import imodelsx.metrics
 import logging
+from abc import ABC, abstractmethod
+
 
 STOPWORDS = {
     'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're",
@@ -26,13 +29,12 @@ STOPWORDS = {
     'shouldn', "shouldn't", 'wasn', "wasn't", 'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"
 }
 
-
-class Stump():
+class Stump(ABC):
     def __init__(
         self,
-        max_features=10,
         split_strategy: str='iprompt',
         tokenizer=None,
+        max_features=10,
         assert_checks: bool=False,
         verbose: bool=True,
     ):
@@ -45,19 +47,40 @@ class Stump():
             'llm' - use prompted language model to split
             'cart' - use cart to split
             'linear' - use linear to split
+        max_features: int
+            used by StumpTabular to decide how many features to save
         """
-        self.max_features = max_features
         self.split_strategy = split_strategy
-        self.child_left = None
-        self.child_right = None
         self.assert_checks = assert_checks
         self.verbose = verbose
+        self.max_features = max_features 
         if tokenizer is None:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
             self.tokenizer = tokenizer
-            
 
+        # tree stuff
+        self.child_left = None
+        self.child_right = None
+    
+    @abstractmethod
+    def fit(self, X, y, feature_names=None, X_text: List[str]=None):
+        return self
+
+    @abstractmethod
+    def predict(self, X, feature_names=None, X_text: List[str]=None) -> np.ndarray[int]:
+        return self
+
+    def _set_value_acc_samples(self, X_text, y):
+        """Set value and accuracy of stump.
+        """
+        idxs_right = self.predict(X_text).astype(bool)
+        self.value = [np.mean(y[~idxs_right]), np.mean(y[idxs_right])]
+        self.value_mean = np.mean(y)
+        self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]
+        self.acc = accuracy_score(y, 1 * idxs_right)
+
+class StumpText(Stump):
 
     def fit(self, X, y, feature_names=None, X_text=None):
         # check input and set some attributes
@@ -69,15 +92,36 @@ class Stump():
         if isinstance(self.feature_names, list):
             self.feature_names = np.array(self.feature_names).flatten()
 
-        if self.split_strategy in ['iprompt']:
-            self._fit_text(X, y, feature_names, X_text)
-        elif self.split_strategy in ['linear', 'cart']:
-            self._fit_tabular(X, y, feature_names, X_text)
-        
+        # actually run fitting
+
+        return self
+
+class StumpTabular(Stump):
+
+    def fit(self, X, y, feature_names=None, X_text=None):
+        # check input and set some attributes
+        assert len(np.unique(y)) > 1, 'y should have more than 1 unique value'
+        assert len(np.unique(y)) <= 2, 'only binary classification is supported'
+        X, y, _ = imodels.util.arguments.check_fit_arguments(
+            self, X, y, feature_names)
+        self.feature_names = feature_names
+        if isinstance(self.feature_names, list):
+            self.feature_names = np.array(self.feature_names).flatten()
+
+        # fit stump
+        if self.split_strategy == 'linear':
+            self.stump_keywords_idxs = self._get_stump_keywords_linear(X, y)
+        elif self.split_strategy == 'cart':
+            self.stump_keywords_idxs = self._get_stump_keywords_cart(X, y)
+        self.stump_keywords = self.feature_names[self.stump_keywords_idxs]
+
+        # set value
+        self._set_value_acc_samples(X_text, y)
+
         # checks
         if self.assert_checks:
-            preds_text = self.predict(X_text=X_text, predict_strategy='text')
-            preds_tab = self.predict(X=X, predict_strategy='tabular')
+            preds_text = self.predict(X_text)
+            preds_tab = self._predict_tabular(X)
             assert np.all(
                 preds_text == preds_tab), 'predicting with text and tabular should give same results'
             assert self.value[1] > self.value[0], 'right child should have greater val than left but value=' + \
@@ -87,69 +131,42 @@ class Stump():
 
         return self
 
-        
 
-    def _fit_text(self, X, y, feature_names, X_text):
-
-        return
-
-    def _fit_tabular(self, X, y, feature_names, X_text):
-        # fit stump
-        if self.split_strategy == 'linear':
-            self.stump_keywords_idxs = self._get_stump_keywords_linear(X, y)
-        elif self.split_strategy == 'cart':
-            self.stump_keywords_idxs = self._get_stump_keywords_cart(X, y, criterion='gini')
-        self.stump_keywords = self.feature_names[self.stump_keywords_idxs]
-
-        # set value
-        self._set_value_acc_samples(X_text, y)
-
-
-
-    def predict(self, X=None, X_text: List[str] = None,
-                predict_strategy='text', keywords=None) -> np.ndarray[int]:
+    def predict(self, X_text: List[str], keywords=None) -> np.ndarray[int]:
         """Returns prediction 1 for positive and 0 for negative.
         """
+        keywords = self.stump_keywords
+        ngrams_used_to_predict = max(
+                [len(keyword.split(' ')) for keyword in keywords])
 
-        assert not (predict_strategy == 'tabular' and X is None)
-        assert not (predict_strategy == 'text' and X_text is None)
+        def contains_any_of_keywords(text):
+            text = text.lower()
+            text = imodelsx.util.generate_ngrams_list(
+                text,
+                ngrams=ngrams_used_to_predict,
+                tokenizer_ngrams=self.tokenizer,
+                all_ngrams=True
+            )
+            for keyword in keywords:
+                if keyword in text:
+                    return 1
+            return 0
+        contains_keywords = 1 * \
+            np.array([contains_any_of_keywords(x) for x in X_text])
+        if self.pos_or_neg == 'pos':
+            return contains_keywords
+        else:
+            return 1 - contains_keywords
 
-        if predict_strategy == 'tabular':
-            X = imodels.util.arguments.check_fit_X(X)
-            # predict whether input has any of the features in stump_keywords_idxs
-            X_feats = X[:, self.stump_keywords_idxs]
-            pred = np.any(X_feats, axis=1)
-            if self.pos_or_neg == 'pos':
-                return pred.astype(int)
-            else:
-                return 1 - pred
-        elif predict_strategy == 'text':
-            if not keywords:
-                if hasattr(self, 'stump_keywords_refined'):
-                    keywords = self.stump_keywords_refined
-                else:
-                    keywords = self.stump_keywords
-            ngrams_used_to_predict = max(
-                    [len(keyword.split(' ')) for keyword in keywords])
-
-            def contains_any_of_keywords(text):
-                text = text.lower()
-                text = imodelsx.util.generate_ngrams_list(
-                    text,
-                    ngrams=ngrams_used_to_predict,
-                    tokenizer_ngrams=self.tokenizer,
-                    all_ngrams=True
-                )
-                for keyword in keywords:
-                    if keyword in text:
-                        return 1
-                return 0
-            contains_keywords = 1 * \
-                np.array([contains_any_of_keywords(x) for x in X_text])
-            if self.pos_or_neg == 'pos':
-                return contains_keywords
-            else:
-                return 1 - contains_keywords
+    def _predict_tabular(self, X):
+        X = imodels.util.arguments.check_fit_X(X)
+        # predict whether input has any of the features in stump_keywords_idxs
+        X_feats = X[:, self.stump_keywords_idxs]
+        pred = np.any(X_feats, axis=1)
+        if self.pos_or_neg == 'pos':
+            return pred.astype(int)
+        else:
+            return 1 - pred
 
     def _get_stump_keywords_linear(self, X, y):
         # fit a linear model
@@ -229,15 +246,6 @@ class Stump():
         else:
             self.pos_or_neg = 'neg'
             return imp_neg_top
-
-    def _set_value_acc_samples(self, X_text, y):
-        """Set value and accuracy of stump.
-        """
-        idxs_right = self.predict(X_text=X_text).astype(bool)
-        self.value = [np.mean(y[~idxs_right]), np.mean(y[idxs_right])]
-        self.value_mean = np.mean(y)
-        self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]
-        self.acc = accuracy_score(y, 1 * idxs_right)
 
     def __str__(self):
         keywords = self.stump_keywords
