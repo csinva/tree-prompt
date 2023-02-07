@@ -44,12 +44,13 @@ class Stump(ABC):
         Params
         ------
         split_strategy: str
-            'llm' - use prompted language model to split
+            'iprompt' - use iprompt to split
             'cart' - use cart to split
             'linear' - use linear to split
         max_features: int
             used by StumpTabular to decide how many features to save
         """
+        assert split_strategy in ['iprompt', 'cart', 'linear']
         self.split_strategy = split_strategy
         self.assert_checks = assert_checks
         self.verbose = verbose
@@ -80,7 +81,7 @@ class Stump(ABC):
         self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]
         self.acc = accuracy_score(y, 1 * idxs_right)
 
-class StumpText(Stump):
+class PromptStump(Stump):
 
     def fit(self, X, y, feature_names=None, X_text=None):
         # check input and set some attributes
@@ -93,10 +94,12 @@ class StumpText(Stump):
             self.feature_names = np.array(self.feature_names).flatten()
 
         # actually run fitting
-
+        breakpoint()
         return self
 
-class StumpTabular(Stump):
+
+
+class KeywordStump(Stump):
 
     def fit(self, X, y, feature_names=None, X_text=None):
         # check input and set some attributes
@@ -132,7 +135,7 @@ class StumpTabular(Stump):
         return self
 
 
-    def predict(self, X_text: List[str], keywords=None) -> np.ndarray[int]:
+    def predict(self, X_text: List[str]) -> np.ndarray[int]:
         """Returns prediction 1 for positive and 0 for negative.
         """
         keywords = self.stump_keywords

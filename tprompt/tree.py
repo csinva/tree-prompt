@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import imodels
 import imodelsx.util
-from tprompt.stump import Stump
+from tprompt.stump import KeywordStump, PromptStump, Stump
 import tprompt.data
 import logging
 import warnings
@@ -53,14 +53,21 @@ class Tree:
         if isinstance(self.feature_names, list):
             self.feature_names = np.array(self.feature_names).flatten()
 
-        # fit root stump
+        # set up arguments
         stump_kwargs = dict(
             tokenizer=self.tokenizer,
             split_strategy=self.split_strategy,
             assert_checks=self.assert_checks,
             verbose=self.verbose,
         )
-        stump = Stump(**stump_kwargs).fit(
+        if self.split_strategy in ['iprompt']:
+            stump_class = PromptStump
+        else:
+            stump_class = KeywordStump
+
+
+        # fit root stump
+        stump = stump_class(**stump_kwargs).fit(
             X, y,
             feature_names=self.feature_names,
             X_text=X_text
@@ -89,7 +96,7 @@ class Tree:
                             and len(np.unique(y[idxs_child])) > 1:
 
                         # sometimes this fails to find a split that partitions any points at all
-                        stump_child = Stump(**stump_kwargs).fit(
+                        stump_child = stump_class(**stump_kwargs).fit(
                             X[idxs_child], y[idxs_child],
                             X_text=X_text[idxs_child],
                             feature_names=self.feature_names,
@@ -164,7 +171,7 @@ class Tree:
     
 
     def __str__(self):
-        s = f'> Tree(max_depth={self.max_depth} max_features={self.max_features} refine={self.refinement_strategy})\n> ------------------------------------------------------\n'
+        s = f'> Tree(max_depth={self.max_depth} split_strategy={self.split_strategy})\n> ------------------------------------------------------\n'
         return s + self.viz_tree()
 
     def viz_tree(self, stump: Stump=None, depth: int=0, s: str='') -> str:

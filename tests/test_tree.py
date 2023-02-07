@@ -17,35 +17,33 @@ def seed_and_get_tiny_data(seed=1):
     return X_train_text, X_test_text, y_train, X_train, y_test, feature_names
 
 
-def test_stump_always_improves_acc():
+def test_stump_always_improves_acc(split_strategy='linear'):
     for seed in range(2):
         X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data(seed=seed)
-        m = tprompt.stump.StumpTabular(
-            split_strategy='linear',
+        stump_cls = tprompt.stump.PromptStump if split_strategy in ['iprompt'] else tprompt.stump.KeywordStump
+        m = stump_cls(
+            split_strategy=split_strategy,
             assert_checks=True,
         ).fit(
             X_train, y_train, feature_names, X_train_text)
-        preds = m.predict(X_text=X_train_text)
+        preds = m.predict(X_train_text)
         acc_baseline = max(y_train.mean(), 1 - y_train.mean())
         acc = np.mean(preds == y_train)
         assert acc > acc_baseline, 'stump must improve train acc'
         print(acc, acc_baseline)
 
-"""
-def test_tree_monotonic_in_depth(refinement_strategy='None', max_features=1, embs_manager=None):
+
+def test_tree_monotonic_in_depth(split_strategy='linear'):
     X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data()
 
     accs = [y_train.mean()]
     # for max_depth in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
     for max_depth in [1, 2, 3]:
-        m = llm_tree.tree.Tree(
+        m = tprompt.tree.Tree(
             max_depth=max_depth,
-            split_strategy='cart',
-            max_features=max_features,
-            verbose=False,
-            refinement_strategy=refinement_strategy,
+            split_strategy=split_strategy,
+            verbose=True,
             assert_checks=True,
-            embs_manager=embs_manager,
         )
         m.fit(X_train, y_train, feature_names, X_train_text)
         preds = m.predict(X_text=X_train_text)
@@ -54,20 +52,9 @@ def test_tree_monotonic_in_depth(refinement_strategy='None', max_features=1, emb
             str(accs)
         print(m)
         print('\n')
-"""
 
 if __name__ == '__main__':
-    test_stump_always_improves_acc()
-
-
-    # for refinement_strategy in ['None', 'llm']:
-    #     test_tree_monotonic_in_depth(
-    #         refinement_strategy=refinement_strategy,
-    #         max_features=1)
-    
-    # embs_manager = llm_tree.embed.EmbsManager()
-    # test_tree_monotonic_in_depth(
-    #     refinement_strategy='embs',
-    #     max_features=1,
-    #     embs_manager=embs_manager
-    #     )
+    # for split_strategy in ['linear']:
+    for split_strategy in ['iprompt', 'linear']:
+        test_stump_always_improves_acc(split_strategy)
+        test_tree_monotonic_in_depth(split_strategy)
