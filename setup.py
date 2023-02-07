@@ -12,21 +12,23 @@ required_pypi = [
     'pandas',
     'tqdm',
     'dict_hash', # required for caching
+    'imodelsx',
+    'transformers',
+    'datasets',
 
     'datasets', # optional, required for getting NLP datasets
-    'imodels', # optional, required for getting tabular datasets / interpretable modeling
     'pytest', # optional, required for running tests
 ]
 
 setuptools.setup(
-    name="project_name",
+    name="tprompt",
     version="0.01",
-    author="Microsoft Research",
+    author="Jack Morris, Chandan Singh",
     author_email="",
     description="",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/csinva/cookiecutter-ml-research",
+    url="https://github.com/csinva/tree-prompt",
     packages=setuptools.find_packages(
         exclude=['tests', 'tests.*', '*.test.*']
     ),
