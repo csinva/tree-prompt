@@ -18,13 +18,15 @@ import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
 
-def fit_model(model, X_train, y_train, feature_names, r):
+def fit_model(model, X_train, X_train_text, y_train, feature_names, r):
     # fit the model
     fit_parameters = inspect.signature(model.fit).parameters.keys()
+    kwargs = {}
     if 'feature_names' in fit_parameters and feature_names is not None:
-        model.fit(X_train, y_train, feature_names=feature_names)
-    else:
-        model.fit(X_train, y_train)
+        kwargs['feature_names'] = feature_names
+    if 'X_text' in fit_parameters:
+        kwargs['X_text'] = X_train_text
+    model.fit(X=X_train, y=y_train, **kwargs)
 
     return r, model
 
@@ -64,6 +66,11 @@ def add_main_args(parser):
                         default='iprompt', help='strategy to use to split each stump')
     parser.add_argument('--max_depth', type=int,
                         default=2, help='max depth of tree')
+    parser.add_argument('--checkpoint', type=str, default='EleutherAI/gpt-j-6B',
+                        help='the underlying model used for prediction')
+    parser.add_argument('--checkpoint_prompting', type=str, default='EleutherAI/gpt-j-6B',
+                        help='the model used for finding the prompt')
+            
     return parser
 
 def add_computational_args(parser):
@@ -121,6 +128,8 @@ if __name__ == '__main__':
         max_depth=args.max_depth,
         split_strategy=args.split_strategy,
         verbose=args.use_verbose,
+        checkpoint=args.checkpoint,
+        checkpoint_prompting=args.checkpoint_prompting,
     )
 
     # set up saving dictionary + save params file

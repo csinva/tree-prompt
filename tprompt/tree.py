@@ -15,6 +15,8 @@ class Tree:
         verbose=True,
         tokenizer=None,
         assert_checks=True,
+        checkpoint: str='EleutherAI/gpt-j-6B',
+        checkpoint_prompting: str='EleutherAI/gpt-j-6B',        
     ):
         '''
         Params
@@ -29,17 +31,23 @@ class Tree:
         tokenizer
         assert_checks: bool
             Whether to run checks during fitting
+        checkpoint: str
+            the underlying model used for prediction
+        checkpoint_prompting: str
+            the model used for finding the prompt            
         '''
         self.max_depth = max_depth
         self.split_strategy = split_strategy
         self.verbose = verbose
         self.assert_checks  = assert_checks
+        self.checkpoint = checkpoint
+        self.checkpoint_prompting = checkpoint_prompting
         if tokenizer is None:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
             self.tokenizer = tokenizer
 
-    def fit(self, X=None, y=None, feature_names=None, X_text: List[str]=None):
+    def fit(self, X_text: List[str]=None, y=None, feature_names=None, X=None):
         if X is None and X_text:
             warnings.warn("X is not passed, defaulting to generating unigrams from X_text")
             X, _, feature_names = tprompt.data.convert_text_data_to_counts_array(X_text, [], ngrams=1)
@@ -59,6 +67,8 @@ class Tree:
             split_strategy=self.split_strategy,
             assert_checks=self.assert_checks,
             verbose=self.verbose,
+            checkpoint=self.checkpoint,
+            checkpoint_prompting=self.checkpoint_prompting,
         )
         if self.split_strategy in ['iprompt']:
             stump_class = PromptStump
@@ -68,9 +78,10 @@ class Tree:
 
         # fit root stump
         stump = stump_class(**stump_kwargs).fit(
-            X, y,
+            X_text=X_text,
+            y=y,
             feature_names=self.feature_names,
-            X_text=X_text
+            X=X
         )
         stump.idxs = np.ones(X.shape[0], dtype=bool)
         self.root_ = stump
@@ -97,15 +108,16 @@ class Tree:
 
                         # sometimes this fails to find a split that partitions any points at all
                         stump_child = stump_class(**stump_kwargs).fit(
-                            X[idxs_child], y[idxs_child],
                             X_text=X_text[idxs_child],
+                            y=y[idxs_child],
                             feature_names=self.feature_names,
+                            X=X[idxs_child],
                         )
 
                         # set the child stump
                         stump_child.idxs = idxs_child
                         acc_tree_baseline = np.mean(self.predict(
-                            X_text[idxs_child]) == y[idxs_child])
+                            X_text=X_text[idxs_child]) == y[idxs_child])
                         if attr == 'child_left':
                             stump.child_left = stump_child
                         else:
@@ -120,12 +132,12 @@ class Tree:
                         if self.assert_checks:
                             # check acc for the points in this stump
                             acc_tree = np.mean(self.predict(
-                                X_text[idxs_child]) == y[idxs_child])
+                                X_text=X_text[idxs_child]) == y[idxs_child])
                             assert acc_tree >= acc_tree_baseline, f'stump acc {acc_tree:0.3f} should be > after adding child {acc_tree_baseline:0.3f}'
 
                             # check total acc
                             acc_total_baseline = max(y.mean(), 1 - y.mean())
-                            acc_total = np.mean(self.predict(X_text) == y)
+                            acc_total = np.mean(self.predict(X_text=X_text) == y)
                             assert acc_total >= acc_total_baseline, f'total acc {acc_total:0.3f} should be > after adding child {acc_total_baseline:0.3f}'
 
                             # check that stumptrain acc improved over this set
@@ -166,7 +178,7 @@ class Tree:
         return probs
 
     def predict(self, X_text: List[str] = None) -> np.ndarray[int]:
-        preds_bool = self.predict_proba(X_text)[:, 1]
+        preds_bool = self.predict_proba(X_text=X_text)[:, 1]
         return (preds_bool > 0.5).astype(int)
     
 

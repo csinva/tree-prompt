@@ -25,7 +25,11 @@ def test_stump_always_improves_acc(split_strategy='linear'):
             split_strategy=split_strategy,
             assert_checks=True,
         ).fit(
-            X_train, y_train, feature_names, X_train_text)
+            X_text=X_train_text,
+            y=y_train,
+            feature_names=feature_names,
+            X=X_train,
+        )
         preds = m.predict(X_train_text)
         acc_baseline = max(y_train.mean(), 1 - y_train.mean())
         acc = np.mean(preds == y_train)
@@ -45,7 +49,7 @@ def test_tree_monotonic_in_depth(split_strategy='linear'):
             verbose=True,
             assert_checks=True,
         )
-        m.fit(X_train, y_train, feature_names, X_train_text)
+        m.fit(X_text=X_train_text, X=X_train, y=y_train, feature_names=feature_names)
         preds = m.predict(X_text=X_train_text)
         accs.append(np.mean(preds == y_train))
         assert accs[-1] >= accs[-2], 'train_acc must monotonically increase with max_depth ' + \

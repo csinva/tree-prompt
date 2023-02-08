@@ -5,29 +5,10 @@ from sklearn.linear_model import LogisticRegression
 import imodels
 import imodelsx.util
 import imodelsx.metrics
+from transformers import AutoModel
 import logging
 from abc import ABC, abstractmethod
 
-
-STOPWORDS = {
-    'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're",
-    "you've", "you'll", "you'd", 'your', 'yours', 'yourself', 'yourselves', 'he',
-    'him', 'his', 'himself', 'she', "she's", 'her', 'hers', 'herself', 'it', "it's",
-    'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which',
-    'who', 'whom', 'this', 'that', "that'll", 'these', 'those', 'am', 'is', 'are', 'was',
-    'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did',
-    'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while',
-    'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through',
-    'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out',
-    'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
-    'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other',
-    'some', 'such', 'nor', 'only', 'own', 'so', 'than', 'too', 'very',
-    'can', 'will', 'just', 'don', "don't", 'should', "should've", 'now',
-    'ain', 'aren', "aren't", 'couldn', "couldn't", 'didn', "didn't",
-    'doesn', "doesn't", 'hadn', "hadn't", 'hasn', "hasn't", 'haven', "haven't", 'isn', "isn't",
-    'ma', 'mightn', "mightn't", 'mustn', "mustn't", 'needn', "needn't", 'shan', "shan't",
-    'shouldn', "shouldn't", 'wasn', "wasn't", 'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"
-}
 
 class Stump(ABC):
     def __init__(
@@ -37,6 +18,8 @@ class Stump(ABC):
         max_features=10,
         assert_checks: bool=False,
         verbose: bool=True,
+        checkpoint: str='EleutherAI/gpt-j-6B',
+        checkpoint_prompting: str='EleutherAI/gpt-j-6B',
     ):
         """Fit a single stump.
         Can use tabular features...
@@ -49,12 +32,18 @@ class Stump(ABC):
             'linear' - use linear to split
         max_features: int
             used by StumpTabular to decide how many features to save
+        checkpoint: str
+            the underlying model used for prediction
+        checkpoint_prompting: str
+            the model used for finding the prompt
         """
         assert split_strategy in ['iprompt', 'cart', 'linear']
         self.split_strategy = split_strategy
         self.assert_checks = assert_checks
         self.verbose = verbose
         self.max_features = max_features 
+        self.checkpoint = checkpoint
+        self.checkpoint_prompting = checkpoint_prompting
         if tokenizer is None:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
@@ -65,11 +54,11 @@ class Stump(ABC):
         self.child_right = None
     
     @abstractmethod
-    def fit(self, X, y, feature_names=None, X_text: List[str]=None):
+    def fit(self, X_text: List[str], y: List[int], feature_names=None, X=None):
         return self
 
     @abstractmethod
-    def predict(self, X, feature_names=None, X_text: List[str]=None) -> np.ndarray[int]:
+    def predict(self, X_text: List[str]) -> np.ndarray[int]:
         return self
 
     def _set_value_acc_samples(self, X_text, y):
@@ -83,10 +72,13 @@ class Stump(ABC):
 
 class PromptStump(Stump):
 
-    def fit(self, X, y, feature_names=None, X_text=None):
+    def __init__(self, *args, **kwargs):
+        super(PromptStump, self).__init__(*args, **kwargs)
+        self.model = AutoModel.from_pretrained(self.checkpoint)
+
+    def fit(self, X_text: List[str], y, feature_names=None, X=None):
         # check input and set some attributes
         assert len(np.unique(y)) > 1, 'y should have more than 1 unique value'
-        assert len(np.unique(y)) <= 2, 'only binary classification is supported'
         X, y, _ = imodels.util.arguments.check_fit_arguments(
             self, X, y, feature_names)
         self.feature_names = feature_names
@@ -94,14 +86,45 @@ class PromptStump(Stump):
             self.feature_names = np.array(self.feature_names).flatten()
 
         # actually run fitting
-        breakpoint()
+        input_strings = X_text
+        output_strings = [' Positive.'] * len(input_strings)
+
+        # get prompt
+        prompts, metadata = imodelsx.explain_dataset_iprompt(
+            input_strings=input_strings,
+            output_strings=output_strings,
+            checkpoint=self.checkpoint, # which language model to use
+            num_learned_tokens=6, # how long of a prompt to learn
+            n_shots=5, # number of examples in context
+            n_epochs=15, # how many epochs to search
+            batch_size=16, # batch size for iprompt
+            llm_float16=True, # whether to load the model in float_16
+            verbose=self.verbose, # how much to print
+        )
+
+        # save stuff
+        self.prompt = prompts[0]
+        self.prompts = prompts
+        self.meta = metadata
+
+        # set value (internall calls predict)
+        self._set_value_acc_samples(X_text, y)
+        
         return self
 
+    def predict(self, X_text: List[str]) -> np.ndarray[int]:
+        """Predict 1 or 0 for each string in X_text
+        """
+        # preds = self.model.generate(X_text) ...
+        return
+    
+    def __str__(self):
+        return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'
 
 
 class KeywordStump(Stump):
 
-    def fit(self, X, y, feature_names=None, X_text=None):
+    def fit(self, X_text: List[str], y, feature_names=None, X=None):
         # check input and set some attributes
         assert len(np.unique(y)) > 1, 'y should have more than 1 unique value'
         assert len(np.unique(y)) <= 2, 'only binary classification is supported'
@@ -234,12 +257,12 @@ class KeywordStump(Stump):
         imp_pos_top = [
             k for k in args_largest_reduction_first
             if k in feature_positive
-            and not k in STOPWORDS
+            and not k in imodelsx.util.STOPWORDS
         ][:self.max_features]
         imp_neg_top = [
             k for k in args_largest_reduction_first
             if not k in feature_positive
-            and not k in STOPWORDS
+            and not k in imodelsx.util.STOPWORDS
         ][:self.max_features]
 
         # feat = DecisionTreeClassifier(max_depth=1).fit(X, y).tree_.feature[0]
