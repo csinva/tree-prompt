@@ -5,6 +5,7 @@ from sklearn.linear_model import LogisticRegression
 import imodels
 import imodelsx.util
 import imodelsx.metrics
+import torch.cuda
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 from abc import ABC, abstractmethod
@@ -83,8 +84,11 @@ class PromptStump(Stump):
 
     def __init__(self, *args, **kwargs):
         super(PromptStump, self).__init__(*args, **kwargs)
-        self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=True)
+        if self.verbose:
+            logging.info(f'Loading model {self.checkpoint}')
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=False)
 
     def fit(self, X_text: List[str], y, feature_names=None, X=None):
         # check input and set some attributes
@@ -115,7 +119,7 @@ class PromptStump(Stump):
             prefix_before_input=False,
             max_n_datapoints=100, # restrict this for now
         )
-        self.model = self.model.to('cuda')
+        self.model = self.model.to(self.device)
 
         # save stuff
         self.prompt = prompts[0]
@@ -128,11 +132,13 @@ class PromptStump(Stump):
         return self
 
     def get_logit_for_target_tokens(self, prompt: str, target_tokens: List[str]) -> np.ndarray[float]:
-        inputs = self.tokenizer(prompt, return_tensors="pt").to('cuda')
-        logits = self.model(**inputs)['logits']  # (batch_size, seq_len, vocab_size)
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
         token_output_ids = self.tokenizer.convert_tokens_to_ids(target_tokens)
         logit_targets = [logits[0, -1, token_output_id].item() for token_output_id in token_output_ids]
-        return np.ndarray(logit_targets)
+        # this can fail when token_output_ids represents multiple tokens
+        # so things get mapped to the same id representing "unknown"
+        return np.array(logit_targets)
 
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
         """Predict 1 or 0 for each string in X_text
@@ -143,7 +149,7 @@ class PromptStump(Stump):
             target_tokens = list(output_map.values())
             # for class_num in output_map:
             # Assumes target_token is a single token here
-            preds[i] = self.get_logit_for_target_token(x, target_tokens)
+            preds[i] = self.get_logit_for_target_tokens(x, target_tokens)
 
         # return the class with the highest logit
         return np.argmax(preds, axis=1)

@@ -153,8 +153,9 @@ class Tree:
 
             stumps_queue = stumps_queue_new
             depth += 1
-
-        self.prompts_list = self.get_prompts_list()
+        
+        if isinstance(self.root_, PromptStump):
+            self.prompts_list = self.get_prompts_list()
 
         return self
 

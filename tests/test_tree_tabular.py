@@ -64,7 +64,6 @@ def test_tree_monotonic_in_depth(split_strategy='linear'):
         print('\n')
 
 if __name__ == '__main__':
-    # for split_strategy in ['linear']:
-    for split_strategy in ['iprompt', 'linear']:
+    for split_strategy in ['cart', 'linear']:
         test_stump_always_improves_acc(split_strategy)
         test_tree_monotonic_in_depth(split_strategy)
