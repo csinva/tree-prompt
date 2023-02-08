@@ -112,8 +112,8 @@ class PromptStump(Stump):
             batch_size=16, # batch size for iprompt
             llm_float16=True, # whether to load the model in float_16
             verbose=0, # how much to print
-            # max_n_datapoints=100, # restrict this for now
-            
+            prefix_before_input=False,
+            max_n_datapoints=100, # restrict this for now
         )
         self.model = self.model.to('cuda')
 
@@ -122,17 +122,17 @@ class PromptStump(Stump):
         self.prompts = prompts
         self.meta = metadata
 
-        # set value (internall calls predict)
+        # set value (calls self.predict)
         self._set_value_acc_samples(X_text, y)
         
         return self
 
-    def get_logit_for_target_token(self, prompt: str, target_token: str) -> float:
+    def get_logit_for_target_tokens(self, prompt: str, target_tokens: List[str]) -> np.ndarray[float]:
         inputs = self.tokenizer(prompt, return_tensors="pt").to('cuda')
         logits = self.model(**inputs)['logits']  # (batch_size, seq_len, vocab_size)
-        token_output_id = self.tokenizer.convert_tokens_to_ids(target_token)
-        logit_target = logits[0, -1, token_output_id]
-        return logit_target.item()
+        token_output_ids = self.tokenizer.convert_tokens_to_ids(target_tokens)
+        logit_targets = [logits[0, -1, token_output_id].item() for token_output_id in token_output_ids]
+        return np.ndarray(logit_targets)
 
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
         """Predict 1 or 0 for each string in X_text
@@ -140,9 +140,10 @@ class PromptStump(Stump):
         output_map = DATA_OUTPUT_STRINGS[self.args.dataset_name]
         preds = np.zeros((len(X_text), len(output_map)), dtype=int)
         for i, x in enumerate(X_text):
-            for class_num in output_map:
-                # Assumes target_token is a single token here
-                preds[i, class_num] = self.get_logit_for_target_token(x, output_map[class_num])
+            target_tokens = list(output_map.values())
+            # for class_num in output_map:
+            # Assumes target_token is a single token here
+            preds[i] = self.get_logit_for_target_token(x, target_tokens)
 
         # return the class with the highest logit
         return np.argmax(preds, axis=1)

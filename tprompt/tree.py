@@ -154,6 +154,8 @@ class Tree:
             stumps_queue = stumps_queue_new
             depth += 1
 
+        self.prompts_list = self.get_prompts_list()
+
         return self
 
     def predict_proba(self, X_text: List[str] = None):
@@ -202,3 +204,13 @@ class Tree:
         else:
             s += '   ' * (depth + 1) + f'Pos n={stump.n_samples[1]} val={stump.value[1]:0.3f}' + '\n'
         return s
+
+    def get_prompts_list(self, stump: Stump=None, prompts_list: List[str]=[]) -> List[str]:
+        if stump is None:
+            stump = self.root_
+        prompts_list.append(stump.prompt)
+        if stump.child_left:
+            self.get_prompts_list(stump.child_left, prompts_list)
+        if stump.child_right:
+            self.get_prompts_list(stump.child_right, prompts_list)
+        return prompts_list

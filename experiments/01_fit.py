@@ -29,6 +29,9 @@ def fit_model(model, X_train, X_train_text, y_train, feature_names, r):
         kwargs['X_text'] = X_train_text
     model.fit(X=X_train, y=y_train, **kwargs)
 
+    if hasattr(model, 'prompts_list'):
+        r['prompts_list'] = model.prompts_list
+
     return r, model
 
 def evaluate_model(model, X_train, X_cv, X_test,
