@@ -88,6 +88,7 @@ class PromptStump(Stump):
         if self.verbose:
             logging.info(f'Loading model {self.checkpoint}')
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            # self.device = 'cpu' # some error when this is specified to cuda, idk what it is...
             self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=False)
 
@@ -118,8 +119,10 @@ class PromptStump(Stump):
             llm_float16=True, # whether to load the model in float_16
             verbose=0, # how much to print
             prefix_before_input=False,
-            max_n_datapoints=100, # restrict this for now
+            # max_n_datapoints=100, # restrict this for now
         )
+        print('prompts', prompts)
+        torch.cuda.empty_cache()
         self.model = self.model.to(self.device)
 
         # save stuff
