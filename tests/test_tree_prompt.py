@@ -38,9 +38,8 @@ def test_stump_always_improves_acc(split_strategy='iprompt'):
         preds = m.predict(X_train_text)
         acc_baseline = max(y_train.mean(), 1 - y_train.mean())
         acc = np.mean(preds == y_train)
-        assert acc > acc_baseline, f'stump must improve train acc but {acc:0.2f} <= {acc_baseline:0.2f}'
+        assert acc > acc_baseline, f'stump must acc but {acc:0.2f} <= {acc_baseline:0.2f}'
         print(acc, acc_baseline)
-
 
     # test actually fitting
     m.fit(

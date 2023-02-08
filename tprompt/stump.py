@@ -6,6 +6,7 @@ import imodels
 import imodelsx.util
 import imodelsx.metrics
 import torch.cuda
+from scipy.special import softmax
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 from abc import ABC, abstractmethod
@@ -131,28 +132,39 @@ class PromptStump(Stump):
         
         return self
 
-    def get_logit_for_target_tokens(self, prompt: str, target_tokens: List[str]) -> np.ndarray[float]:
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
-        logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
-        token_output_ids = self.tokenizer.convert_tokens_to_ids(target_tokens)
-        logit_targets = [logits[0, -1, token_output_id].item() for token_output_id in token_output_ids]
-        # this can fail when token_output_ids represents multiple tokens
-        # so things get mapped to the same id representing "unknown"
-        return np.array(logit_targets)
-
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
-        """Predict 1 or 0 for each string in X_text
-        """
-        output_map = DATA_OUTPUT_STRINGS[self.args.dataset_name]
-        preds = np.zeros((len(X_text), len(output_map)), dtype=int)
+        preds_proba = self.predict_proba(X_text)
+        return np.argmax(preds_proba, axis=1)
+
+    def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
+        target_strs = list(DATA_OUTPUT_STRINGS[self.args.dataset_name].values())
+        
+        # only predict based on first token of output string
+        target_token_ids = list(map(self._get_first_token_id, target_strs))
+
+        preds = np.zeros((len(X_text), len(target_token_ids)))
         for i, x in enumerate(X_text):
-            target_tokens = list(output_map.values())
-            # for class_num in output_map:
-            # Assumes target_token is a single token here
-            preds[i] = self.get_logit_for_target_tokens(x, target_tokens)
+            
+            preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)
 
         # return the class with the highest logit
-        return np.argmax(preds, axis=1)
+        return softmax(preds, axis=1)
+
+    def _get_logit_for_target_tokens(self, prompt: str, target_token_ids: List[int]) -> np.ndarray[float]:
+        """Get logits for each target token
+        This can fail when token_output_ids represents multiple tokens
+        So things get mapped to the same id representing "unknown"
+        """
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
+        # token_output_ids = self.tokenizer.convert_tokens_to_ids(target_tokens)
+        logit_targets = [logits[0, -1, token_output_id].item() for token_output_id in target_token_ids]
+        return np.array(logit_targets)
+
+    def _get_first_token_id(self, prompt: str) -> str:
+        """Get first token id in prompt
+        """
+        return self.tokenizer(prompt)['input_ids'][0]
     
     def __str__(self):
         return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'
