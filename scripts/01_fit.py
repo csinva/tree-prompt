@@ -6,10 +6,10 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    'save_dir': [join(repo_dir, 'results', 'feb7')],
+    'save_dir': [join(repo_dir, 'results', 'feb8')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     'dataset_name': ['rotten_tomatoes'],
-    'max_depth': [1, 2, 3, 4],
+    'max_depth': [1, 2, 3, 4, 5, 6, 7, 8],
     'split_strategy': ['iprompt'],
 }
 
@@ -27,4 +27,5 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
     gpu_ids = [1, 2, 3],
+    shuffle=False,
 )

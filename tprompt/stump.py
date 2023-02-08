@@ -108,11 +108,11 @@ class PromptStump(Stump):
             checkpoint=self.checkpoint, # which language model to use
             num_learned_tokens=6, # how long of a prompt to learn
             n_shots=5, # number of examples in context
-            n_epochs=1, # how many epochs to search
+            n_epochs=5, # how many epochs to search
             batch_size=16, # batch size for iprompt
             llm_float16=True, # whether to load the model in float_16
             verbose=0, # how much to print
-            max_n_datapoints=100, # restrict this for now
+            # max_n_datapoints=100, # restrict this for now
             
         )
         self.model = self.model.to('cuda')
