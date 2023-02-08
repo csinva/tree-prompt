@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 import imodels
 import imodelsx.util
 import imodelsx.metrics
-from transformers import AutoModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 from abc import ABC, abstractmethod
 
@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 class Stump(ABC):
     def __init__(
         self,
+        args,
         split_strategy: str='iprompt',
         tokenizer=None,
         max_features=10,
@@ -37,6 +38,7 @@ class Stump(ABC):
         checkpoint_prompting: str
             the model used for finding the prompt
         """
+        self.args = args
         assert split_strategy in ['iprompt', 'cart', 'linear']
         self.split_strategy = split_strategy
         self.assert_checks = assert_checks
@@ -70,11 +72,19 @@ class Stump(ABC):
         self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]
         self.acc = accuracy_score(y, 1 * idxs_right)
 
+
+DATA_OUTPUT_STRINGS = {
+    'rotten_tomatoes': {
+        0: ' Negative.',
+        1: ' Positive.',
+    }
+}
 class PromptStump(Stump):
 
     def __init__(self, *args, **kwargs):
         super(PromptStump, self).__init__(*args, **kwargs)
-        self.model = AutoModel.from_pretrained(self.checkpoint)
+        self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=True)
 
     def fit(self, X_text: List[str], y, feature_names=None, X=None):
         # check input and set some attributes
@@ -87,20 +97,25 @@ class PromptStump(Stump):
 
         # actually run fitting
         input_strings = X_text
-        output_strings = [' Positive.'] * len(input_strings)
+        output_map = DATA_OUTPUT_STRINGS[self.args.dataset_name]
+        output_strings = [output_map[int(yi)] for yi in y]
 
         # get prompt
+        self.model = self.model.to('cpu')
         prompts, metadata = imodelsx.explain_dataset_iprompt(
             input_strings=input_strings,
             output_strings=output_strings,
             checkpoint=self.checkpoint, # which language model to use
             num_learned_tokens=6, # how long of a prompt to learn
             n_shots=5, # number of examples in context
-            n_epochs=15, # how many epochs to search
+            n_epochs=1, # how many epochs to search
             batch_size=16, # batch size for iprompt
             llm_float16=True, # whether to load the model in float_16
-            verbose=self.verbose, # how much to print
+            verbose=0, # how much to print
+            max_n_datapoints=100, # restrict this for now
+            
         )
+        self.model = self.model.to('cuda')
 
         # save stuff
         self.prompt = prompts[0]
@@ -112,11 +127,25 @@ class PromptStump(Stump):
         
         return self
 
+    def get_logit_for_target_token(self, prompt: str, target_token: str) -> float:
+        inputs = self.tokenizer(prompt, return_tensors="pt").to('cuda')
+        logits = self.model(**inputs)['logits']  # (batch_size, seq_len, vocab_size)
+        token_output_id = self.tokenizer.convert_tokens_to_ids(target_token)
+        logit_target = logits[0, -1, token_output_id]
+        return logit_target.item()
+
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
         """Predict 1 or 0 for each string in X_text
         """
-        # preds = self.model.generate(X_text) ...
-        return
+        output_map = DATA_OUTPUT_STRINGS[self.args.dataset_name]
+        preds = np.zeros((len(X_text), len(output_map)), dtype=int)
+        for i, x in enumerate(X_text):
+            for class_num in output_map:
+                # Assumes target_token is a single token here
+                preds[i, class_num] = self.get_logit_for_target_token(x, output_map[class_num])
+
+        # return the class with the highest logit
+        return np.argmax(preds, axis=1)
     
     def __str__(self):
         return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'

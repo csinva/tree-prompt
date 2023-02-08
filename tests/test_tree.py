@@ -21,7 +21,10 @@ def test_stump_always_improves_acc(split_strategy='linear'):
     for seed in range(2):
         X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data(seed=seed)
         stump_cls = tprompt.stump.PromptStump if split_strategy in ['iprompt'] else tprompt.stump.KeywordStump
+        class args:
+            dataset_name = 'rotten_tomatoes'
         m = stump_cls(
+            args=args(),
             split_strategy=split_strategy,
             assert_checks=True,
         ).fit(
@@ -43,7 +46,10 @@ def test_tree_monotonic_in_depth(split_strategy='linear'):
     accs = [y_train.mean()]
     # for max_depth in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
     for max_depth in [1, 2, 3]:
+        class args:
+            dataset_name = 'rotten_tomatoes'
         m = tprompt.tree.Tree(
+            args=args(),
             max_depth=max_depth,
             split_strategy=split_strategy,
             verbose=True,

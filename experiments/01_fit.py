@@ -1,11 +1,12 @@
 import argparse
 from copy import deepcopy
+from functools import partial
 import logging
 import random
 from collections import defaultdict
 from os.path import join, dirname
 import numpy as np
-from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, balanced_accuracy_score, brier_score_loss
 from sklearn.model_selection import train_test_split
 import pickle as pkl
 import imodelsx.data
@@ -30,17 +31,43 @@ def fit_model(model, X_train, X_train_text, y_train, feature_names, r):
 
     return r, model
 
-def evaluate_model(model, X_train, X_cv, X_test, y_train, y_cv, y_test, r):
+def evaluate_model(model, X_train, X_cv, X_test,
+                   X_train_text, X_cv_text, X_test_text,
+                   y_train, y_cv, y_test, r):
     """Evaluate model performance on each split
     """
     metrics = {
         'accuracy': accuracy_score,
+        'precision': partial(precision_score, zero_division=0),
+        'recall': partial(recall_score, zero_division=0),
+        'balanced_accuracy': balanced_accuracy_score,
     }
-    for split_name, (X_, y_) in zip(['train', 'cv', 'test'], [(X_train, y_train), (X_cv, y_cv), (X_test, y_test)]):
-        y_pred_ = model.predict(X_)
+    metrics_proba = {
+        'roc_auc': roc_auc_score,
+        'brier_score_loss': brier_score_loss,
+    }
+    for split_name, (X_text_, X_, y_) in zip(['train', 'cv', 'test'],
+                                             [(X_train_text, X_train, y_train),
+                                             (X_cv_text, X_cv, y_cv),
+                                             (X_test_text, X_test, y_test)]):
+        # metrics discrete                                             
+        predict_parameters = inspect.signature(model.predict).parameters.keys()
+        if 'X_text' in predict_parameters:
+            y_pred_ = model.predict(X_text=X_text_).astype(int)
+        else:
+            y_pred_ = model.predict(X_)
         for metric_name, metric_fn in metrics.items():
             r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_)
-        
+
+        # metrics proba
+        if hasattr(model, 'predict_proba'):
+            if 'X_text' in predict_parameters:
+                y_pred_proba_ = model.predict_proba(X_text=X_text_)[:, 1]
+            else:
+                y_pred_proba_ = model.predict_proba(X_)[:, 1]
+        for metric_name, metric_fn in metrics_proba.items():
+            r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+
     return r
 
 # initialize args
@@ -125,6 +152,7 @@ if __name__ == '__main__':
 
     # load model
     model = tprompt.tree.Tree(
+        args=args,
         max_depth=args.max_depth,
         split_strategy=args.split_strategy,
         verbose=args.use_verbose,
@@ -140,10 +168,15 @@ if __name__ == '__main__':
         args=args, save_dir=save_dir_unique, fname='params.json', r=r)
 
     # fit
-    r, model = fit_model(model, X_train, y_train, feature_names, r)
+    r, model = fit_model(model, X_train, X_train_text, y_train, feature_names, r)
     
     # evaluate
-    r = evaluate_model(model, X_train, X_cv, X_test, y_train, y_cv, y_test, r)
+    r = evaluate_model(
+        model,
+        X_train, X_cv, X_test,
+        X_train_text, X_cv_text, X_test_text,
+        y_train, y_cv, y_test, r
+    )
 
     # save results
     pkl.dump(r, open(join(save_dir_unique, 'results.pkl'), 'wb'))

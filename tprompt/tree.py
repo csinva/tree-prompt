@@ -10,6 +10,7 @@ import warnings
 class Tree:
     def __init__(
         self,
+        args,
         max_depth: int = 3,
         split_strategy: str='iprompt',
         verbose=True,
@@ -36,6 +37,7 @@ class Tree:
         checkpoint_prompting: str
             the model used for finding the prompt            
         '''
+        self.args = args
         self.max_depth = max_depth
         self.split_strategy = split_strategy
         self.verbose = verbose
@@ -63,6 +65,7 @@ class Tree:
 
         # set up arguments
         stump_kwargs = dict(
+            args=self.args,
             tokenizer=self.tokenizer,
             split_strategy=self.split_strategy,
             assert_checks=self.assert_checks,
