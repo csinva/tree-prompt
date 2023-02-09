@@ -87,8 +87,8 @@ class PromptStump(Stump):
         super(PromptStump, self).__init__(*args, **kwargs)
         if self.verbose:
             logging.info(f'Loading model {self.checkpoint}')
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            # self.device = 'cpu' # some error when this is specified to cuda, idk what it is...
+            # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = 'cpu' # some error when this is specified to cuda, idk what it is...
             self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=False)
 
@@ -136,18 +136,20 @@ class PromptStump(Stump):
         return self
 
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
+        '''todo: pass in model here so we can share it across all stumps
+        '''
         preds_proba = self.predict_proba(X_text)
         return np.argmax(preds_proba, axis=1)
 
     def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
+        '''todo: pass in model here so we can share it across all stumps
+        '''
         target_strs = list(DATA_OUTPUT_STRINGS[self.args.dataset_name].values())
         
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
-
         preds = np.zeros((len(X_text), len(target_token_ids)))
         for i, x in enumerate(X_text):
-            
             preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)
 
         # return the class with the highest logit

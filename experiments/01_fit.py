@@ -31,6 +31,7 @@ def fit_model(model, X_train, X_train_text, y_train, feature_names, r):
 
     if hasattr(model, 'prompts_list'):
         r['prompts_list'] = model.prompts_list
+        r['prompt'] = r['prompts_list'][0]
 
     return r, model
 
