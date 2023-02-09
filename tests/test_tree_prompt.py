@@ -6,11 +6,11 @@ import random
 import imodelsx.data
 
 
-def seed_and_get_tiny_data(seed=1):
+def seed_and_get_tiny_data(seed=1, subsample_frac=0.05):
     np.random.seed(seed)
     random.seed(seed)
     X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
-        dataset_name='rotten_tomatoes', subsample_frac=0.05, return_lists=True)
+        dataset_name='rotten_tomatoes', subsample_frac=subsample_frac, return_lists=True)
     X_train, _, feature_names = \
         tprompt.data.convert_text_data_to_counts_array(
             X_train_text, X_test_text, ngrams=1)
@@ -18,7 +18,8 @@ def seed_and_get_tiny_data(seed=1):
 
 
 def test_stump_always_improves_acc(split_strategy='iprompt'):
-    X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data(seed=1)
+    X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data(
+        seed=1, subsample_frac=0.05)
     stump_cls = tprompt.stump.PromptStump
     class args:
         dataset_name = 'rotten_tomatoes'
