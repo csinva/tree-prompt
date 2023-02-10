@@ -6,6 +6,7 @@ from tprompt.stump import KeywordStump, PromptStump, Stump
 import tprompt.data
 import logging
 import warnings
+from transformers import AutoModelForCausalLM
 
 class Tree:
     def __init__(
@@ -18,6 +19,7 @@ class Tree:
         assert_checks=True,
         checkpoint: str='EleutherAI/gpt-j-6B',
         checkpoint_prompting: str='EleutherAI/gpt-j-6B',        
+        device='cuda',
     ):
         '''
         Params
@@ -45,6 +47,7 @@ class Tree:
         self.assert_checks  = assert_checks
         self.checkpoint = checkpoint
         self.checkpoint_prompting = checkpoint_prompting
+        self.device = device
         if tokenizer is None:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
@@ -65,13 +68,14 @@ class Tree:
             self.feature_names = np.array(self.feature_names).flatten()
 
         # set up arguments
-        # model = AutoModelForCausalLM.from_pretrained(checkpoint).to(device)
+        model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
         stump_kwargs = dict(
             args=self.args,
             tokenizer=self.tokenizer,
             split_strategy=self.split_strategy,
             assert_checks=self.assert_checks,
             verbose=self.verbose,
+            model=model,
             checkpoint=self.checkpoint,
             checkpoint_prompting=self.checkpoint_prompting,
         )
