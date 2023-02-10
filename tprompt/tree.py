@@ -25,6 +25,7 @@ class Tree:
         max_depth: int
             Maximum depth of the tree.
         split_strategy: str
+            'manual' - use passed prompts in args.prompts_list
             'iprompt' - use prompted language model to split
             'cart' - use cart to split
             'linear' - use linear to split

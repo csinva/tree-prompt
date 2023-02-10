@@ -31,6 +31,7 @@ class Stump(ABC):
         ------
         split_strategy: str
             'iprompt' - use iprompt to split
+            'manual' - use passed prompt in args.prompt
             'cart' - use cart to split
             'linear' - use linear to split
         max_features: int
@@ -41,7 +42,7 @@ class Stump(ABC):
             the model used for finding the prompt
         """
         self.args = args
-        assert split_strategy in ['iprompt', 'cart', 'linear']
+        assert split_strategy in ['iprompt', 'cart', 'linear', 'manual']
         self.split_strategy = split_strategy
         self.assert_checks = assert_checks
         self.verbose = verbose
@@ -103,32 +104,35 @@ class PromptStump(Stump):
 
         # actually run fitting
         input_strings = X_text
-        output_map = DATA_OUTPUT_STRINGS[self.args.dataset_name]
-        output_strings = [output_map[int(yi)] for yi in y]
+        verbalizer_dict = self._get_verbalizer()
+        output_strings = [verbalizer_dict[int(yi)] for yi in y]
 
         # get prompt
-        self.model = self.model.to('cpu')
-        prompts, metadata = imodelsx.explain_dataset_iprompt(
-            input_strings=input_strings,
-            output_strings=output_strings,
-            checkpoint=self.checkpoint, # which language model to use
-            num_learned_tokens=6, # how long of a prompt to learn
-            n_shots=5, # number of examples in context
-            n_epochs=5, # how many epochs to search
-            batch_size=16, # batch size for iprompt
-            llm_float16=True, # whether to load the model in float_16
-            verbose=0, # how much to print
-            prefix_before_input=False,
-            # max_n_datapoints=100, # restrict this for now
-        )
-        print('prompts', prompts)
-        torch.cuda.empty_cache()
-        self.model = self.model.to(self.device)
+        if self.split_strategy == 'manual':
+            self.prompt = self.args.prompt
+        else:
+            self.model = self.model.to('cpu')
+            prompts, metadata = imodelsx.explain_dataset_iprompt(
+                input_strings=input_strings,
+                output_strings=output_strings,
+                checkpoint=self.checkpoint, # which language model to use
+                num_learned_tokens=6, # how long of a prompt to learn
+                n_shots=5, # number of examples in context
+                n_epochs=5, # how many epochs to search
+                batch_size=16, # batch size for iprompt
+                llm_float16=True, # whether to load the model in float_16
+                verbose=0, # how much to print
+                prefix_before_input=False,
+                # max_n_datapoints=100, # restrict this for now
+            )
+            print('prompts', prompts)
+            torch.cuda.empty_cache()
+            self.model = self.model.to(self.device)
 
-        # save stuff
-        self.prompt = prompts[0]
-        self.prompts = prompts
-        self.meta = metadata
+            # save stuff
+            self.prompt = prompts[0]
+            self.prompts = prompts
+            self.meta = metadata
 
         # set value (calls self.predict)
         self._set_value_acc_samples(X_text, y)
@@ -138,13 +142,14 @@ class PromptStump(Stump):
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
         '''todo: pass in model here so we can share it across all stumps
         '''
+        self.model = self.model.to('cuda')
         preds_proba = self.predict_proba(X_text)
         return np.argmax(preds_proba, axis=1)
 
     def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
         '''todo: pass in model here so we can share it across all stumps
         '''
-        target_strs = list(DATA_OUTPUT_STRINGS[self.args.dataset_name].values())
+        target_strs = list(self._get_verbalizer().values())
         
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
@@ -170,6 +175,12 @@ class PromptStump(Stump):
         """Get first token id in prompt
         """
         return self.tokenizer(prompt)['input_ids'][0]
+
+    def _get_verbalizer(self):
+        if hasattr(self.args, 'verbalizer') and self.args.verbalizer is not None:
+            return self.args.verbalizer
+        else:
+            return DATA_OUTPUT_STRINGS[self.args.dataset_name]
     
     def __str__(self):
         return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'
