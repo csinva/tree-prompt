@@ -65,6 +65,7 @@ class Tree:
             self.feature_names = np.array(self.feature_names).flatten()
 
         # set up arguments
+        # model = AutoModelForCausalLM.from_pretrained(checkpoint).to(device)
         stump_kwargs = dict(
             args=self.args,
             tokenizer=self.tokenizer,

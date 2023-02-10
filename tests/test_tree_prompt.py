@@ -4,7 +4,7 @@ import tprompt.tree
 import tprompt.data
 import random
 import imodelsx.data
-
+from transformers import AutoModelForCausalLM
 
 def seed_and_get_tiny_data(seed=1, subsample_frac=0.05):
     np.random.seed(seed)

@@ -21,6 +21,7 @@ class Stump(ABC):
         max_features=10,
         assert_checks: bool=False,
         verbose: bool=True,
+        model: AutoModelForCausalLM=None,
         checkpoint: str='EleutherAI/gpt-j-6B',
         checkpoint_prompting: str='EleutherAI/gpt-j-6B',
     ):
@@ -38,6 +39,8 @@ class Stump(ABC):
             used by StumpTabular to decide how many features to save
         checkpoint: str
             the underlying model used for prediction
+        model: AutoModelForCausalLM
+            if this is passed, will override checkpoint
         checkpoint_prompting: str
             the model used for finding the prompt
         """
@@ -49,6 +52,7 @@ class Stump(ABC):
         self.max_features = max_features 
         self.checkpoint = checkpoint
         self.checkpoint_prompting = checkpoint_prompting
+        self.model = model
         if tokenizer is None:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
@@ -88,9 +92,11 @@ class PromptStump(Stump):
         super(PromptStump, self).__init__(*args, **kwargs)
         if self.verbose:
             logging.info(f'Loading model {self.checkpoint}')
-            # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            self.device = 'cpu' # some error when this is specified to cuda, idk what it is...
-            self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            # self.device = 'cpu'
+            if self.model is None:
+                self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
+            # todo: note make sure tokenizer matches model when model is passed instead of checkpoint...
             self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=False)
 
     def fit(self, X_text: List[str], y, feature_names=None, X=None):
@@ -142,7 +148,6 @@ class PromptStump(Stump):
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
         '''todo: pass in model here so we can share it across all stumps
         '''
-        self.model = self.model.to('cuda')
         preds_proba = self.predict_proba(X_text)
         return np.argmax(preds_proba, axis=1)
 
