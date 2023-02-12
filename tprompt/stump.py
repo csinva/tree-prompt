@@ -218,6 +218,8 @@ class KeywordStump(Stump):
 
         # set value
         self._set_value_acc_samples(X_text, y)
+        if self.failed_to_split:
+            return self
 
         # checks
         if self.assert_checks:
