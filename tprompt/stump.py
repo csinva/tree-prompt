@@ -74,6 +74,12 @@ class Stump(ABC):
         """Set value and accuracy of stump.
         """
         idxs_right = self.predict(X_text).astype(bool)
+        n_right = idxs_right.sum()
+        if n_right == 0 or n_right == y.size:
+            self.failed_to_split = True
+            return
+        else:
+            self.failed_to_split = False
         self.value = [np.mean(y[~idxs_right]), np.mean(y[idxs_right])]
         self.value_mean = np.mean(y)
         self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]

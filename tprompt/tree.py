@@ -86,6 +86,8 @@ class Tree:
 
 
         # fit root stump
+        # if the initial feature puts no points into a leaf,
+        # the value will end up as NaN
         stump = stump_class(**stump_kwargs).fit(
             X_text=X_text,
             y=y,
@@ -115,7 +117,7 @@ class Tree:
                         and idxs_child.sum() < stump.idxs.sum() \
                             and len(np.unique(y[idxs_child])) > 1:
 
-                        # sometimes this fails to find a split that partitions any points at all
+                        # fit a potential child stump
                         stump_child = stump_class(**stump_kwargs).fit(
                             X_text=X_text[idxs_child],
                             y=y[idxs_child],
@@ -123,18 +125,19 @@ class Tree:
                             X=X[idxs_child],
                         )
 
-                        # set the child stump
-                        stump_child.idxs = idxs_child
-                        acc_tree_baseline = np.mean(self.predict(
-                            X_text=X_text[idxs_child]) == y[idxs_child])
-                        if attr == 'child_left':
-                            stump.child_left = stump_child
-                        else:
-                            stump.child_right = stump_child
-                        stumps_queue_new.append(stump_child)
-                        if self.verbose:
-                            logging.debug(f'\t\t {stump.stump_keywords} {stump.pos_or_neg}')
-                        i += 1
+                        # make sure the stump actually found a non-trivial split
+                        if not stump_child.failed_to_split:
+                            stump_child.idxs = idxs_child
+                            acc_tree_baseline = np.mean(self.predict(
+                                X_text=X_text[idxs_child]) == y[idxs_child])
+                            if attr == 'child_left':
+                                stump.child_left = stump_child
+                            else:
+                                stump.child_right = stump_child
+                            stumps_queue_new.append(stump_child)
+                            if self.verbose:
+                                logging.debug(f'\t\t {stump.stump_keywords} {stump.pos_or_neg}')
+                            i += 1
 
                         ######################### checks ###########################
                         # if self.refinement_strategy == 'None' and self.assert_checks:
