@@ -1,16 +1,19 @@
 from typing import List
-import numpy as np
-from sklearn.metrics import accuracy_score
-from sklearn.linear_model import LogisticRegression
+
+from abc import ABC, abstractmethod
+import logging
+
 import imodels
 import imodelsx.util
 import imodelsx.metrics
-import torch.cuda
+import numpy as np
 from scipy.special import softmax
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import logging
-from abc import ABC, abstractmethod
+from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
+import torch.cuda
+from transformers import AutoTokenizer
 
+from .utils import load_lm
 
 class Stump(ABC):
     def __init__(
@@ -87,10 +90,13 @@ class PromptStump(Stump):
         super(PromptStump, self).__init__(*args, **kwargs)
         if self.verbose:
             logging.info(f'Loading model {self.checkpoint}')
-            # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            self.device = 'cpu' # some error when this is specified to cuda, idk what it is...
-            self.model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
-            self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=False)
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=True)
+            self.model = load_lm(
+                checkpoint=self.checkpoint,
+                tokenizer=self.tokenizer,
+                llm_float16=True
+            ).to(self.device)
 
     def fit(self, X_text: List[str], y, feature_names=None, X=None):
         # check input and set some attributes
@@ -118,7 +124,11 @@ class PromptStump(Stump):
             batch_size=16, # batch size for iprompt
             llm_float16=True, # whether to load the model in float_16
             verbose=0, # how much to print
-            prefix_before_input=False,
+            prefix_before_input=False, # sets template like ${input}${prefix}
+            mask_possible_answers=True, # only compute loss over valid output tokens
+            generation_repetition_penalty=1.0,
+            pop_topk_strategy='all',
+            pop_criterion='acc',
             # max_n_datapoints=100, # restrict this for now
         )
         print('prompts', prompts)

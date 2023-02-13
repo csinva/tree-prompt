@@ -23,10 +23,12 @@ def test_stump_always_improves_acc(split_strategy='iprompt'):
     stump_cls = tprompt.stump.PromptStump
     class args:
         dataset_name = 'rotten_tomatoes'
+        verbose = True
     m = stump_cls(
         args=args(),
         split_strategy=split_strategy,
         checkpoint='EleutherAI/gpt-j-6B',
+        # checkpoint='gpt2',
         assert_checks=True,
     )
 
