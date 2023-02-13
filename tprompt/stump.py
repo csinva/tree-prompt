@@ -195,6 +195,11 @@ class PromptStump(Stump):
     
     def __str__(self):
         return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'
+    
+
+
+    def get_str_simple(self):
+        return self.prompt
 
 
 class KeywordStump(Stump):
@@ -357,3 +362,11 @@ class KeywordStump(Stump):
             keywords_str += f'...({len(keywords) - 5} more)'
         sign = {'pos': '+', 'neg': '--'}[self.pos_or_neg]
         return f'Stump(val={self.value_mean:0.2f} n={self.n_samples}) {sign} {keywords_str}'
+
+    def get_str_simple(self):
+        keywords = self.stump_keywords
+        keywords_str = ", ".join(keywords[:5])
+        if len(keywords) > 5:
+            keywords_str += f'...({len(keywords) - 5} more)'
+        sign = {'pos': '+', 'neg': '--'}[self.pos_or_neg]
+        return f'{sign} {keywords_str}'
