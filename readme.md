@@ -12,6 +12,7 @@
     - see `setup.py` for dependencies, not all are required
 - example run: run `python scripts/01_train_basic_models.py` (which calls `experiments/01_train_model.py` then view the results in `notebooks/01_model_results.ipynb`
 - keep tests upated and run using `pytest`
+- requries `python 3.9+`
 
 # Features
 - scripts sweep over hyperparameters using easy-to-specify python code

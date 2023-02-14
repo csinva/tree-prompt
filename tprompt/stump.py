@@ -89,12 +89,6 @@ class Stump(ABC):
         self.acc = accuracy_score(y, 1 * idxs_right)
 
 
-DATA_OUTPUT_STRINGS = {
-    'rotten_tomatoes': {
-        0: ' Negative.',
-        1: ' Positive.',
-    }
-}
 class PromptStump(Stump):
 
     def __init__(self, *args, **kwargs):
@@ -199,7 +193,7 @@ class PromptStump(Stump):
         if hasattr(self.args, 'verbalizer') and self.args.verbalizer is not None:
             return self.args.verbalizer
         else:
-            return DATA_OUTPUT_STRINGS[self.args.dataset_name]
+            return {0: ' Negative.', 1: ' Positive.'}   
     
     def __str__(self):
         return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'

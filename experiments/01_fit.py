@@ -18,6 +18,17 @@ import tprompt.data
 import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
+def get_verbalizer(args):
+    VERB0 = {0: ' Negative.', 1: ' Positive.'}
+    VERB1 = {0: ' No.', 1: ' Yes.',}   
+    VERB_LIST_DEFAULT = [VERB0, VERB1]
+    DATA_OUTPUT_STRINGS = {
+        'rotten_tomatoes': [VERB0, VERB1],
+        'sst2': [VERB0, VERB1],
+        'emotion': [VERB0, VERB1],
+        'financial_phrasebank': [VERB0, VERB1],
+    }
+    return DATA_OUTPUT_STRINGS.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
 
 def fit_model(model, X_train, X_train_text, y_train, feature_names, r):
     # fit the model
@@ -101,6 +112,8 @@ def add_main_args(parser):
                         help='the underlying model used for prediction')
     parser.add_argument('--checkpoint_prompting', type=str, default='EleutherAI/gpt-j-6B',
                         help='the model used for finding the prompt')
+    parser.add_argument('--verbalizer_num', type=int, default=0,
+                        help='which verbalizer to use')
             
     return parser
 
@@ -153,6 +166,7 @@ if __name__ == '__main__':
             X_train_text, X_test_text, ngrams=2)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
+    args.verbalizer = get_verbalizer(args)
 
     # load model
     model = tprompt.tree.Tree(

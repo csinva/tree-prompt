@@ -16,6 +16,7 @@ required_pypi = [
     'transformers',
     'datasets',
     'spacy',
+    'accelerate',
 
     'datasets', # optional, required for getting NLP datasets
     'pytest', # optional, required for running tests
@@ -24,7 +25,7 @@ required_pypi = [
 setuptools.setup(
     name="tprompt",
     version="0.01",
-    author="Jack Morris, Chandan Singh",
+    author="Jack Morris, Chandan Singh, Yuntian Deng",
     author_email="",
     description="",
     long_description=long_description,
@@ -33,7 +34,8 @@ setuptools.setup(
     packages=setuptools.find_packages(
         exclude=['tests', 'tests.*', '*.test.*']
     ),
-    python_requires='>=3.6',
+    install_requires=required_pypi,
+    python_requires='>=3.9',
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
