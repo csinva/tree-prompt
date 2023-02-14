@@ -6,6 +6,7 @@ from tprompt.stump import KeywordStump, PromptStump, Stump
 import tprompt.data
 import logging
 import warnings
+from transformers import AutoModelForCausalLM
 
 class Tree:
     def __init__(
@@ -18,6 +19,7 @@ class Tree:
         assert_checks=True,
         checkpoint: str='EleutherAI/gpt-j-6B',
         checkpoint_prompting: str='EleutherAI/gpt-j-6B',        
+        device='cuda',
     ):
         '''
         Params
@@ -25,6 +27,7 @@ class Tree:
         max_depth: int
             Maximum depth of the tree.
         split_strategy: str
+            'manual' - use passed prompts in args.prompts_list
             'iprompt' - use prompted language model to split
             'cart' - use cart to split
             'linear' - use linear to split
@@ -44,6 +47,7 @@ class Tree:
         self.assert_checks  = assert_checks
         self.checkpoint = checkpoint
         self.checkpoint_prompting = checkpoint_prompting
+        self.device = device
         if tokenizer is None:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
@@ -64,12 +68,14 @@ class Tree:
             self.feature_names = np.array(self.feature_names).flatten()
 
         # set up arguments
+        model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
         stump_kwargs = dict(
             args=self.args,
             tokenizer=self.tokenizer,
             split_strategy=self.split_strategy,
             assert_checks=self.assert_checks,
             verbose=self.verbose,
+            model=model,
             checkpoint=self.checkpoint,
             checkpoint_prompting=self.checkpoint_prompting,
         )
@@ -80,6 +86,8 @@ class Tree:
 
 
         # fit root stump
+        # if the initial feature puts no points into a leaf,
+        # the value will end up as NaN
         stump = stump_class(**stump_kwargs).fit(
             X_text=X_text,
             y=y,
@@ -109,7 +117,7 @@ class Tree:
                         and idxs_child.sum() < stump.idxs.sum() \
                             and len(np.unique(y[idxs_child])) > 1:
 
-                        # sometimes this fails to find a split that partitions any points at all
+                        # fit a potential child stump
                         stump_child = stump_class(**stump_kwargs).fit(
                             X_text=X_text[idxs_child],
                             y=y[idxs_child],
@@ -117,18 +125,19 @@ class Tree:
                             X=X[idxs_child],
                         )
 
-                        # set the child stump
-                        stump_child.idxs = idxs_child
-                        acc_tree_baseline = np.mean(self.predict(
-                            X_text=X_text[idxs_child]) == y[idxs_child])
-                        if attr == 'child_left':
-                            stump.child_left = stump_child
-                        else:
-                            stump.child_right = stump_child
-                        stumps_queue_new.append(stump_child)
-                        if self.verbose:
-                            logging.debug(f'\t\t {stump.stump_keywords} {stump.pos_or_neg}')
-                        i += 1
+                        # make sure the stump actually found a non-trivial split
+                        if not stump_child.failed_to_split:
+                            stump_child.idxs = idxs_child
+                            acc_tree_baseline = np.mean(self.predict(
+                                X_text=X_text[idxs_child]) == y[idxs_child])
+                            if attr == 'child_left':
+                                stump.child_left = stump_child
+                            else:
+                                stump.child_right = stump_child
+                            stumps_queue_new.append(stump_child)
+                            if self.verbose:
+                                logging.debug(f'\t\t {stump.stump_keywords} {stump.pos_or_neg}')
+                            i += 1
 
                         ######################### checks ###########################
                         # if self.refinement_strategy == 'None' and self.assert_checks:

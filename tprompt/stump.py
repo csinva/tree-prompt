@@ -11,7 +11,7 @@ from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 import torch.cuda
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from .utils import load_lm
 
@@ -24,6 +24,7 @@ class Stump(ABC):
         max_features=10,
         assert_checks: bool=False,
         verbose: bool=True,
+        model: AutoModelForCausalLM=None,
         checkpoint: str='EleutherAI/gpt-j-6B',
         checkpoint_prompting: str='EleutherAI/gpt-j-6B',
     ):
@@ -34,23 +35,27 @@ class Stump(ABC):
         ------
         split_strategy: str
             'iprompt' - use iprompt to split
+            'manual' - use passed prompt in args.prompt
             'cart' - use cart to split
             'linear' - use linear to split
         max_features: int
             used by StumpTabular to decide how many features to save
         checkpoint: str
             the underlying model used for prediction
+        model: AutoModelForCausalLM
+            if this is passed, will override checkpoint
         checkpoint_prompting: str
             the model used for finding the prompt
         """
         self.args = args
-        assert split_strategy in ['iprompt', 'cart', 'linear']
+        assert split_strategy in ['iprompt', 'cart', 'linear', 'manual']
         self.split_strategy = split_strategy
         self.assert_checks = assert_checks
         self.verbose = verbose
         self.max_features = max_features 
         self.checkpoint = checkpoint
         self.checkpoint_prompting = checkpoint_prompting
+        self.model = model
         if tokenizer is None:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
@@ -72,6 +77,12 @@ class Stump(ABC):
         """Set value and accuracy of stump.
         """
         idxs_right = self.predict(X_text).astype(bool)
+        n_right = idxs_right.sum()
+        if n_right == 0 or n_right == y.size:
+            self.failed_to_split = True
+            return
+        else:
+            self.failed_to_split = False
         self.value = [np.mean(y[~idxs_right]), np.mean(y[idxs_right])]
         self.value_mean = np.mean(y)
         self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]
@@ -95,7 +106,6 @@ class PromptStump(Stump):
             self.model = load_lm(
                 checkpoint=self.checkpoint,
                 tokenizer=self.tokenizer,
-                llm_float16=True
             ).to(self.device)
 
     def fit(self, X_text: List[str], y, feature_names=None, X=None):
@@ -109,36 +119,40 @@ class PromptStump(Stump):
 
         # actually run fitting
         input_strings = X_text
-        output_map = DATA_OUTPUT_STRINGS[self.args.dataset_name]
-        output_strings = [output_map[int(yi)] for yi in y]
+        verbalizer_dict = self._get_verbalizer()
+        output_strings = [verbalizer_dict[int(yi)] for yi in y]
 
         # get prompt
-        self.model = self.model.to('cpu')
-        prompts, metadata = imodelsx.explain_dataset_iprompt(
-            input_strings=input_strings,
-            output_strings=output_strings,
-            checkpoint=self.checkpoint, # which language model to use
-            num_learned_tokens=6, # how long of a prompt to learn
-            n_shots=5, # number of examples in context
-            n_epochs=5, # how many epochs to search
-            batch_size=16, # batch size for iprompt
-            llm_float16=True, # whether to load the model in float_16
-            verbose=0, # how much to print
-            prefix_before_input=False, # sets template like ${input}${prefix}
-            mask_possible_answers=True, # only compute loss over valid output tokens
-            generation_repetition_penalty=1.0,
-            pop_topk_strategy='all',
-            pop_criterion='acc',
-            # max_n_datapoints=100, # restrict this for now
-        )
-        print('prompts', prompts)
-        torch.cuda.empty_cache()
-        self.model = self.model.to(self.device)
+        if self.split_strategy == 'manual':
+            self.prompt = self.args.prompt
+        else:
+            print("calling explain_dataset_iprompt with verbosity", self.verbose)
+            self.model = self.model.to('cpu')
+            prompts, metadata = imodelsx.explain_dataset_iprompt(
+                input_strings=input_strings,
+                output_strings=output_strings,
+                checkpoint=self.checkpoint, # which language model to use
+                num_learned_tokens=6, # how long of a prompt to learn
+                n_shots=5, # number of examples in context
+                n_epochs=5, # how many epochs to search
+                batch_size=16, # batch size for iprompt
+                llm_float16=True, # whether to load the model in float_16
+                verbose=self.verbose, # how much to print
+                prefix_before_input=False, # sets template like ${input}${prefix}
+                mask_possible_answers=True, # only compute loss over valid output tokens
+                generation_repetition_penalty=1.0,
+                pop_topk_strategy='all',
+                pop_criterion='acc',
+                # max_n_datapoints=100, # restrict this for now
+            )
+            print('prompts', prompts)
+            torch.cuda.empty_cache()
+            self.model = self.model.to(self.device)
 
-        # save stuff
-        self.prompt = prompts[0]
-        self.prompts = prompts
-        self.meta = metadata
+            # save stuff
+            self.prompt = prompts[0]
+            self.prompts = prompts
+            self.meta = metadata
 
         # set value (calls self.predict)
         self._set_value_acc_samples(X_text, y)
@@ -154,7 +168,7 @@ class PromptStump(Stump):
     def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
         '''todo: pass in model here so we can share it across all stumps
         '''
-        target_strs = list(DATA_OUTPUT_STRINGS[self.args.dataset_name].values())
+        target_strs = list(self._get_verbalizer().values())
         
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
@@ -180,9 +194,20 @@ class PromptStump(Stump):
         """Get first token id in prompt
         """
         return self.tokenizer(prompt)['input_ids'][0]
+
+    def _get_verbalizer(self):
+        if hasattr(self.args, 'verbalizer') and self.args.verbalizer is not None:
+            return self.args.verbalizer
+        else:
+            return DATA_OUTPUT_STRINGS[self.args.dataset_name]
     
     def __str__(self):
         return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'
+    
+
+
+    def get_str_simple(self):
+        return self.prompt
 
 
 class KeywordStump(Stump):
@@ -206,6 +231,8 @@ class KeywordStump(Stump):
 
         # set value
         self._set_value_acc_samples(X_text, y)
+        if self.failed_to_split:
+            return self
 
         # checks
         if self.assert_checks:
@@ -343,3 +370,11 @@ class KeywordStump(Stump):
             keywords_str += f'...({len(keywords) - 5} more)'
         sign = {'pos': '+', 'neg': '--'}[self.pos_or_neg]
         return f'Stump(val={self.value_mean:0.2f} n={self.n_samples}) {sign} {keywords_str}'
+
+    def get_str_simple(self):
+        keywords = self.stump_keywords
+        keywords_str = ", ".join(keywords[:5])
+        if len(keywords) > 5:
+            keywords_str += f'...({len(keywords) - 5} more)'
+        sign = {'pos': '+', 'neg': '--'}[self.pos_or_neg]
+        return f'{sign} {keywords_str}'
