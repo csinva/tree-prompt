@@ -52,6 +52,7 @@ class Tree:
             self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
         else:
             self.tokenizer = tokenizer
+        self.prompts_list = []
 
     def fit(self, X_text: List[str]=None, y=None, feature_names=None, X=None):
         if X is None and X_text:
@@ -163,7 +164,7 @@ class Tree:
             depth += 1
         
         if isinstance(self.root_, PromptStump):
-            self.prompts_list = self.get_prompts_list()
+            self._set_prompts_list(self.root_)
 
         return self
 
@@ -214,12 +215,10 @@ class Tree:
             s += '   ' * (depth + 1) + f'Pos n={stump.n_samples[1]} val={stump.value[1]:0.3f}' + '\n'
         return s
 
-    def get_prompts_list(self, stump: Stump=None, prompts_list: List[str]=[]) -> List[str]:
-        if stump is None:
-            stump = self.root_
-        prompts_list.append(stump.prompt)
+    def _set_prompts_list(self, stump: Stump) -> List[str]:
+        self.prompts_list.append(stump.prompt)
         if stump.child_left:
-            self.get_prompts_list(stump.child_left, prompts_list)
+            self._set_prompts_list(stump.child_left)
         if stump.child_right:
-            self.get_prompts_list(stump.child_right, prompts_list)
-        return prompts_list
+            self._set_prompts_list(stump.child_right)
+        return self.prompts_list

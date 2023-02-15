@@ -131,7 +131,7 @@ class PromptStump(Stump):
                 n_epochs=5, # how many epochs to search
                 batch_size=16, # batch size for iprompt
                 llm_float16=True, # whether to load the model in float_16
-                verbose=self.verbose, # how much to print
+                verbose=1, # how much to print
                 prefix_before_input=False, # sets template like ${input}${prefix}
                 mask_possible_answers=True, # only compute loss over valid output tokens
                 generation_repetition_penalty=1.0,
