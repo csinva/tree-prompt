@@ -96,6 +96,8 @@ def add_main_args(parser):
                         default='iprompt', help='strategy to use to split each stump')
     parser.add_argument('--max_depth', type=int,
                         default=2, help='max depth of tree')
+    parser.add_argument('--num_prompts_manual', type=int,
+                        default=1, help='only for manual things!')
     parser.add_argument('--checkpoint', type=str, default='EleutherAI/gpt-j-6B',
                         help='the underlying model used for prediction (or for constructing features from prompt)')
     parser.add_argument('--checkpoint_prompting', type=str, default='EleutherAI/gpt-j-6B',
@@ -157,8 +159,8 @@ if __name__ == '__main__':
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
     if args.model_name.startswith('manual'):
-        X_train, X_test, feature_names = \
-            tprompt.prompts.engineer_prompt_features(args, X_train_text, X_test_text, y_train, y_test)
+        X_train, X_test, X_cv, feature_names = \
+            tprompt.prompts.engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv)
     args.verbalizer = get_verbalizer(args)
 
     # load model
@@ -173,8 +175,12 @@ if __name__ == '__main__':
         )
     elif args.model_name == 'manual_tree':
         model = sklearn.tree.DecisionTreeClassifier(
-            max_depth=args.max_depth,
+            max_leaf_nodes=args.num_prompts_manual,
             random_state=args.seed,
+        )
+    elif args.model_name == 'manual_ensemble':
+        model = tprompt.ensemble.NaiveEnsembleClassifier(
+            n_estimators=args.num_prompts_manual,
         )
 
     # set up saving dictionary + save params file
@@ -207,9 +213,10 @@ if __name__ == '__main__':
         r['prompt'] = r['prompts_list'][0]
     # r['feature_names'] = feature_names
     if isinstance(model, sklearn.tree.DecisionTreeClassifier):
-        r['str_tree'] = sklearn.tree.sklearn.tree.export_text(model, feature_names=feature_names)
+        r['str_tree'] = sklearn.tree.export_text(model, feature_names=feature_names)
     else:
         r['str_tree'] = str(model)
+
     pkl.dump(r, open(join(save_dir_unique, 'results.pkl'), 'wb'))
     pkl.dump(model, open(join(save_dir_unique, 'model.pkl'), 'wb'))
     logging.info('Succesfully completed :)\n\n')

@@ -6,6 +6,7 @@ import random
 from tqdm import tqdm
 import imodelsx.data
 import sklearn.tree
+import tprompt.prompts
 from transformers import AutoModelForCausalLM
 
 def seed_and_get_tiny_data(seed=1, subsample_frac=0.05):
@@ -70,19 +71,7 @@ def test_stump_manual():
     )
 
     # test different manual stumps
-    prompts = [
-        # ' What is the sentiment expressed by the reviewer for the movie?',
-        # ' Is the movie positive or negative?',
-        ' The movie is',
-        ' Positive or Negative? The movie was',
-        ' The sentiment of the movie was',
-        ' The plot of the movie was really',
-        ' The acting in the movie was',
-        ' I felt the scenery was',
-        ' The climax of the movie was',
-        ' Overall I felt the acting was',
-        ' I thought the visuals were generally',
-    ]
+    prompts = tprompt.prompts.PROMPTS_MOVIE_0
     for p in prompts:
         m.prompt = p
         preds_train = m.predict(X_train_text)
@@ -94,7 +83,7 @@ def test_stump_manual():
         preds_test = m.predict(X_test_text)
         acc_test = np.mean(preds_test == y_test)
         print(f'\tacc_test {acc_test:0.3f}')
-        
+
 # def test_tree_monotonic_in_depth(split_strategy='linear'):
 #     X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data()
 
