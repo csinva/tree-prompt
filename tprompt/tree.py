@@ -140,24 +140,23 @@ class Tree:
                             i += 1
 
                         ######################### checks ###########################
-                        # if self.refinement_strategy == 'None' and self.assert_checks:
-                        if self.assert_checks:
-                            # check acc for the points in this stump
-                            acc_tree = np.mean(self.predict(
-                                X_text=X_text[idxs_child]) == y[idxs_child])
-                            assert acc_tree >= acc_tree_baseline, f'stump acc {acc_tree:0.3f} should be > after adding child {acc_tree_baseline:0.3f}'
+                            if self.assert_checks:
+                                # check acc for the points in this stump
+                                acc_tree = np.mean(self.predict(
+                                    X_text=X_text[idxs_child]) == y[idxs_child])
+                                assert acc_tree >= acc_tree_baseline, f'stump acc {acc_tree:0.3f} should be > after adding child {acc_tree_baseline:0.3f}'
 
-                            # check total acc
-                            acc_total_baseline = max(y.mean(), 1 - y.mean())
-                            acc_total = np.mean(self.predict(X_text=X_text) == y)
-                            assert acc_total >= acc_total_baseline, f'total acc {acc_total:0.3f} should be > after adding child {acc_total_baseline:0.3f}'
+                                # check total acc
+                                acc_total_baseline = max(y.mean(), 1 - y.mean())
+                                acc_total = np.mean(self.predict(X_text=X_text) == y)
+                                assert acc_total >= acc_total_baseline, f'total acc {acc_total:0.3f} should be > after adding child {acc_total_baseline:0.3f}'
 
-                            # check that stumptrain acc improved over this set
-                            # not necessarily going to improve total acc, since the stump always predicts 0/1
-                            # even though the correct answer might be always 0 or always be 1
-                            acc_child_baseline = min(
-                                y[idxs_child].mean(), 1 - y[idxs_child].mean())
-                            assert stump_child.acc > acc_child_baseline, f'acc {stump_child.acc:0.3f} should be > baseline {acc_child_baseline:0.3f}'
+                                # check that stumptrain acc improved over this set
+                                # not necessarily going to improve total acc, since the stump always predicts 0/1
+                                # even though the correct answer might be always 0 or always be 1
+                                acc_child_baseline = min(
+                                    y[idxs_child].mean(), 1 - y[idxs_child].mean())
+                                assert stump_child.acc > acc_child_baseline, f'acc {stump_child.acc:0.3f} should be > baseline {acc_child_baseline:0.3f}'
 
 
             stumps_queue = stumps_queue_new
