@@ -4,6 +4,7 @@ import tprompt.tree
 import tprompt.data
 import random
 import imodelsx.data
+import sklearn.tree
 from transformers import AutoModelForCausalLM
 
 def seed_and_get_tiny_data(seed=1, subsample_frac=0.05):
@@ -17,7 +18,7 @@ def seed_and_get_tiny_data(seed=1, subsample_frac=0.05):
     return X_train_text, X_test_text, y_train, X_train, y_test, feature_names
 
 
-def test_stump_always_improves_acc(split_strategy='iprompt'):
+def test_stump_improves_acc(split_strategy='iprompt'):
     X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data(
         seed=1, subsample_frac=0.05)
     stump_cls = tprompt.stump.PromptStump
@@ -80,6 +81,47 @@ def test_stump_manual():
         acc_test = np.mean(m.predict(X_test_text) == y_test)
         print(f'acc_test {acc_test:0.2f}', p)
 
+def engineer_prompt_features(checkpoint='gpt2-xl'):
+    X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data(
+        seed=1, subsample_frac=0.05)
+    
+    class args:
+        prompt = 'Placeholder' # we set this in the loop below
+        verbalizer = {
+            0: ' Negative.',
+            1: ' Positive.',
+        }
+        
+    m = tprompt.stump.PromptStump(
+        args=args(),
+        split_strategy='manual', # 'manual' specifies that we use args.prompt
+        checkpoint=checkpoint,
+    )
+
+    # test different manual stumps
+    prompts = [
+        # ' What is the sentiment expressed by the reviewer for the movie?',
+        # ' Is the movie positive or negative?',
+        ' The movie is',
+        ' Positive or Negative? The movie is',
+        ' The sentiment of the movie is',
+        # ' Based on this review, it is generally',
+    ]
+    prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
+    for i, p in enumerate(prompts):
+        m.prompt = p
+        preds = m.predict(X_train_text)
+        prompt_features_train[:, i] = preds
+        acc_baseline = max(y_train.mean(), 1 - y_train.mean())
+        acc = np.mean(preds == y_train)
+        print('prompt', p)
+        # assert acc > acc_baseline, f'stump must improve acc but {acc:0.3f} <= {acc_baseline:0.2f}')
+        print(f'\tacc_train {acc:0.3f} baseline: {acc_baseline:0.3f}')
+        acc_test = np.mean(m.predict(X_test_text) == y_test)
+        print(f'\tacc_test {acc_test:0.3f}')
+
+    sklearn.tree.DecisionTreeClassifier().fit(prompt_features_train, y_train)
+    return prompt_features_train
 
 # def test_tree_monotonic_in_depth(split_strategy='linear'):
 #     X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data()
@@ -106,7 +148,8 @@ def test_stump_manual():
 
 if __name__ == '__main__':
     split_strategy = 'iprompt'
-    test_stump_always_improves_acc(split_strategy)
+    # test_stump_improves_acc(split_strategy)
     # test_tree_monotonic_in_depth(split_strategy)
     # test_stump_manual()
+    engineer_prompt_features(checkpoint='gpt2-xl')
     # test_tree_manual()

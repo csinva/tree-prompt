@@ -154,21 +154,17 @@ class PromptStump(Stump):
         return self
 
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
-        '''todo: pass in model here so we can share it across all stumps
-        '''
         preds_proba = self.predict_proba(X_text)
         return np.argmax(preds_proba, axis=1)
 
     def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
-        '''todo: pass in model here so we can share it across all stumps
-        '''
         target_strs = list(self._get_verbalizer().values())
         
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
         preds = np.zeros((len(X_text), len(target_token_ids)))
         for i, x in enumerate(X_text):
-            preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)
+            preds[i] = self._get_logit_for_target_tokens(x + self.prompt, target_token_ids)
 
         # return the class with the highest logit
         return softmax(preds, axis=1)
@@ -179,6 +175,7 @@ class PromptStump(Stump):
         So things get mapped to the same id representing "unknown"
         """
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        # print('prompt_calling', repr(prompt))
         logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
         # token_output_ids = self.tokenizer.convert_tokens_to_ids(target_tokens)
         logit_targets = [logits[0, -1, token_output_id].item() for token_output_id in target_token_ids]
