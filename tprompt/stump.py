@@ -167,6 +167,10 @@ class PromptStump(Stump):
             target_token_ids,
             batch_size=self.args.batch_size
         )
+        # preds = np.zeros((len(X_text), len(target_token_ids)))
+        # for i, x in enumerate(X_text):
+        #     preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)
+        #     preds[i] = self._get_logit_for_target_tokens(x + self.prompt, target_token_ids)
         assert preds.shape == (len(X_text), len(target_token_ids)), 'preds shape was' + str(preds.shape) + ' but should have been ' + str((len(X_text), len(target_token_ids)))
 
         # return the class with the highest logit
@@ -189,18 +193,29 @@ class PromptStump(Stump):
                 return np.array(logit_targets_list)
 
             prompts_batch = prompts[batch_start: batch_end]
-            # print(prompts_batch)
             self.tokenizer.padding = True
             self.tokenizer.pad_token = self.tokenizer.eos_token
             inputs = (
                 self.tokenizer(prompts_batch, return_tensors="pt",
-                            padding=True, truncation=False) #, padding=True)
+                            padding=True, truncation=False, return_attention_mask=True)
                 .to(self.model.device)
             )
+
             logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
+            token_output_positions = inputs['attention_mask'].sum(axis=1)
             for i in range(len(prompts_batch)):
-                logit_targets_list.append([logits[i, -1, token_output_id].item() for token_output_id in target_token_ids])
+                token_output_position = token_output_positions[i].item() - 1
+                logit_targets_list.append([logits[i, token_output_position, token_output_id].item() for token_output_id in target_token_ids])
             
+    # def _get_logit_for_target_tokens(self, prompt: str, target_token_ids: List[int]) -> np.ndarray[float]:
+    #     """Get logits for each target token
+    #     This can fail when token_output_ids represents multiple tokens
+    #     So things get mapped to the same id representing "unknown"
+    #     """
+    #     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+    #     logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
+    #     logit_targets = [logits[0, -1, token_output_id].item() for token_output_id in target_token_ids]
+    #     return np.array(logit_targets)
 
     def _get_first_token_id(self, prompt: str) -> str:
         """Get first token id in prompt

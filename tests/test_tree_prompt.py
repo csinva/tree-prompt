@@ -85,14 +85,16 @@ def test_stump_manual():
     ]
     for p in prompts:
         m.prompt = p
-        preds = m.predict(X_train_text)
+        preds_train = m.predict(X_train_text)
         acc_baseline = max(y_train.mean(), 1 - y_train.mean())
-        acc = np.mean(preds == y_train)
-        # assert acc > acc_baseline, f'stump must improve acc but {acc:0.2f} <= {acc_baseline:0.2f}'
-        print('acc_train', acc, acc_baseline)
-        acc_test = np.mean(m.predict(X_test_text) == y_test)
-        print(f'acc_test {acc_test:0.2f}', p)
-
+        acc_train = np.mean(preds_train == y_train)
+        print('prompt', p)
+        # assert acc > acc_baseline, f'stump must improve acc but {acc:0.3f} <= {acc_baseline:0.2f}')
+        print(f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
+        preds_test = m.predict(X_test_text)
+        acc_test = np.mean(preds_test == y_test)
+        print(f'\tacc_test {acc_test:0.3f}')
+        
 # def test_tree_monotonic_in_depth(split_strategy='linear'):
 #     X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data()
 
