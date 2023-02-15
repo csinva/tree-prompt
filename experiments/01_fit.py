@@ -8,6 +8,7 @@ from os.path import join, dirname
 import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, balanced_accuracy_score, brier_score_loss
 from sklearn.model_selection import train_test_split
+import sklearn.tree
 import pickle as pkl
 import imodelsx.data
 import inspect
@@ -15,6 +16,7 @@ import os
 
 import tprompt.tree
 import tprompt.data
+import tprompt.prompts
 import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
@@ -29,22 +31,6 @@ def get_verbalizer(args):
         'financial_phrasebank': [VERB0, VERB1],
     }
     return DATA_OUTPUT_STRINGS.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
-
-def fit_model(model, X_train, X_train_text, y_train, feature_names, r):
-    # fit the model
-    fit_parameters = inspect.signature(model.fit).parameters.keys()
-    kwargs = {}
-    if 'feature_names' in fit_parameters and feature_names is not None:
-        kwargs['feature_names'] = feature_names
-    if 'X_text' in fit_parameters:
-        kwargs['X_text'] = X_train_text
-    model.fit(X=X_train, y=y_train, **kwargs)
-
-    if hasattr(model, 'prompts_list'):
-        r['prompts_list'] = model.prompts_list
-        r['prompt'] = r['prompts_list'][0]
-
-    return r, model
 
 def evaluate_model(model, X_train, X_cv, X_test,
                    X_train_text, X_cv_text, X_test_text,
@@ -104,12 +90,14 @@ def add_main_args(parser):
                         help='directory for saving')
 
     # model args
+    parser.add_argument('--model_name', type=str, default='tprompt', choices=['tprompt', 'manual_tree', 'manual_ensemble'],
+                        help='name of model')
     parser.add_argument('--split_strategy', type=str, choices=['iprompt', 'cart', 'linear'],
                         default='iprompt', help='strategy to use to split each stump')
     parser.add_argument('--max_depth', type=int,
                         default=2, help='max depth of tree')
     parser.add_argument('--checkpoint', type=str, default='EleutherAI/gpt-j-6B',
-                        help='the underlying model used for prediction')
+                        help='the underlying model used for prediction (or for constructing features from prompt)')
     parser.add_argument('--checkpoint_prompting', type=str, default='EleutherAI/gpt-j-6B',
                         help='the model used for finding the prompt')
     parser.add_argument('--verbalizer_num', type=int, default=0,
@@ -124,6 +112,8 @@ def add_computational_args(parser):
                         help='whether to check for cache')
     parser.add_argument('--use_verbose', type=int, default=1, choices=[0, 1],
                         help='whether to print verbosely')
+    parser.add_argument('--batch_size', type=int, default=128,
+                        help='batch size for manual_tree feature extraction')
     return parser
 
 if __name__ == '__main__':
@@ -166,17 +156,26 @@ if __name__ == '__main__':
             X_train_text, X_test_text, ngrams=2)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
+    if args.model_name.startswith('manual'):
+        X_train, X_test, feature_names = \
+            tprompt.prompts.engineer_prompt_features(args, X_train_text, X_test_text, y_train, y_test)
     args.verbalizer = get_verbalizer(args)
 
     # load model
-    model = tprompt.tree.Tree(
-        args=args,
-        max_depth=args.max_depth,
-        split_strategy=args.split_strategy,
-        verbose=args.use_verbose,
-        checkpoint=args.checkpoint,
-        checkpoint_prompting=args.checkpoint_prompting,
-    )
+    if args.model_name == 'tprompt':
+        model = tprompt.tree.Tree(
+            args=args,
+            max_depth=args.max_depth,
+            split_strategy=args.split_strategy,
+            verbose=args.use_verbose,
+            checkpoint=args.checkpoint,
+            checkpoint_prompting=args.checkpoint_prompting,
+        )
+    elif args.model_name == 'manual_tree':
+        model = sklearn.tree.DecisionTreeClassifier(
+            max_depth=args.max_depth,
+            random_state=args.seed,
+        )
 
     # set up saving dictionary + save params file
     r = defaultdict(list)
@@ -185,8 +184,14 @@ if __name__ == '__main__':
     cache_save_utils.save_json(
         args=args, save_dir=save_dir_unique, fname='params.json', r=r)
 
-    # fit
-    r, model = fit_model(model, X_train, X_train_text, y_train, feature_names, r)
+    # fit the model
+    fit_parameters = inspect.signature(model.fit).parameters.keys()
+    kwargs = {}
+    if 'feature_names' in fit_parameters and feature_names is not None:
+        kwargs['feature_names'] = feature_names
+    if 'X_text' in fit_parameters:
+        kwargs['X_text'] = X_train_text
+    model.fit(X=X_train, y=y_train, **kwargs)
     
     # evaluate
     r = evaluate_model(
@@ -197,6 +202,14 @@ if __name__ == '__main__':
     )
 
     # save results
+    if hasattr(model, 'prompts_list'):
+        r['prompts_list'] = model.prompts_list
+        r['prompt'] = r['prompts_list'][0]
+    # r['feature_names'] = feature_names
+    if isinstance(model, sklearn.tree.DecisionTreeClassifier):
+        r['str_tree'] = sklearn.tree.sklearn.tree.export_text(model, feature_names=feature_names)
+    else:
+        r['str_tree'] = str(model)
     pkl.dump(r, open(join(save_dir_unique, 'results.pkl'), 'wb'))
     pkl.dump(model, open(join(save_dir_unique, 'model.pkl'), 'wb'))
     logging.info('Succesfully completed :)\n\n')

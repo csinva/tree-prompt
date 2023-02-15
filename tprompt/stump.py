@@ -71,7 +71,7 @@ class Stump(ABC):
 
     @abstractmethod
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
-        return self
+        return
 
     def _set_value_acc_samples(self, X_text, y):
         """Set value and accuracy of stump.
@@ -96,7 +96,7 @@ class PromptStump(Stump):
         if self.verbose:
             logging.info(f'Loading model {self.checkpoint}')
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=True)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint, use_fast=False)
             self.model = load_lm(
                 checkpoint=self.checkpoint,
                 tokenizer=self.tokenizer,
@@ -162,24 +162,45 @@ class PromptStump(Stump):
         
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
-        preds = np.zeros((len(X_text), len(target_token_ids)))
-        for i, x in enumerate(X_text):
-            preds[i] = self._get_logit_for_target_tokens(x + self.prompt, target_token_ids)
+        preds = self._get_logit_for_target_tokens_batched(
+            [x + self.prompt for x in X_text],
+            target_token_ids,
+            batch_size=self.args.batch_size
+        )
+        assert preds.shape == (len(X_text), len(target_token_ids)), 'preds shape was' + str(preds.shape) + ' but should have been ' + str((len(X_text), len(target_token_ids)))
 
         # return the class with the highest logit
         return softmax(preds, axis=1)
-
-    def _get_logit_for_target_tokens(self, prompt: str, target_token_ids: List[int]) -> np.ndarray[float]:
+    
+    def _get_logit_for_target_tokens_batched(self, prompts: List[str],
+                                             target_token_ids: List[int],
+                                             batch_size: int=64) -> np.ndarray[float]:
         """Get logits for each target token
         This can fail when token_output_ids represents multiple tokens
         So things get mapped to the same id representing "unknown"
         """
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
-        # print('prompt_calling', repr(prompt))
-        logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
-        # token_output_ids = self.tokenizer.convert_tokens_to_ids(target_tokens)
-        logit_targets = [logits[0, -1, token_output_id].item() for token_output_id in target_token_ids]
-        return np.array(logit_targets)
+        logit_targets_list = []
+        batch_num = 0
+        while True:
+            batch_start = batch_num * batch_size
+            batch_end = (batch_num + 1) * batch_size
+            batch_num += 1
+            if batch_start >= len(prompts):
+                return np.array(logit_targets_list)
+
+            prompts_batch = prompts[batch_start: batch_end]
+            # print(prompts_batch)
+            self.tokenizer.padding = True
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            inputs = (
+                self.tokenizer(prompts_batch, return_tensors="pt",
+                            padding=True, truncation=False) #, padding=True)
+                .to(self.model.device)
+            )
+            logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
+            for i in range(len(prompts_batch)):
+                logit_targets_list.append([logits[i, -1, token_output_id].item() for token_output_id in target_token_ids])
+            
 
     def _get_first_token_id(self, prompt: str) -> str:
         """Get first token id in prompt

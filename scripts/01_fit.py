@@ -8,14 +8,21 @@ params_shared_dict = {
     'seed': [1],
     'save_dir': [join('/home/chansingh/mntv1', 'tree-prompt', 'feb15')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
-    'dataset_name': ['rotten_tomatoes', 'financial_phrasebank', 'emotion', 'sst2'],
+    # 'dataset_name': ['rotten_tomatoes', 'financial_phrasebank', 'emotion', 'sst2'],
+    'dataset_name': ['rotten_tomatoes'], #, 'financial_phrasebank', 'emotion', 'sst2'],
     'max_depth': [1, 3, 5],
-    'split_strategy': ['iprompt'],
     'verbalizer_num': [0], # [0, 1],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
-params_coupled_dict = {}
+params_coupled_dict = {
+    ('model_name', 'checkpoint'): [
+        ('manual_tree', 'gpt2-xl')
+    ],
+    # ('model_name', 'split_strategy'): [
+    #     ('tprompt', 'iprompt'),
+    # ],
+}
 
 # Args list is a list of dictionaries
 # If you want to do something special to remove some of these runs, can remove them before calling run_args_list
@@ -27,6 +34,6 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
-    gpu_ids = [0],
+    gpu_ids = [2],
     shuffle=False,
 )
