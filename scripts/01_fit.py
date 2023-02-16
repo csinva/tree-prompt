@@ -9,18 +9,19 @@ params_shared_dict = {
     'save_dir': [join('/home/chansingh/mntv1', 'tree-prompt', 'feb18')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     # 'dataset_name': ['rotten_tomatoes', 'financial_phrasebank', 'emotion', 'sst2'],
-    'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'], #, 'financial_phrasebank', 'emotion', 'sst2'],
+    # 'dataset_name': ['rotten_tomatoes'], #, 'financial_phrasebank', 'emotion', 'sst2'],
+    'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
     'verbalizer_num': [0], # [0, 1],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
     ('model_name', 'checkpoint', 'batch_size', 'num_prompts_manual'): [
-        ('manual_tree', 'gpt2-xl', 16, num_prompts_manual)
+        ('manual_tree', 'gpt2-xl', 8, num_prompts_manual)
         for num_prompts_manual in [1, 3, 5, 7, 10]
     ],
-    ('model_name', 'checkpoint', 'batch_size'): [
-        ('manual_ensemble', 'gpt2-xl', 16, num_prompts_manual)
+    ('model_name', 'checkpoint', 'batch_size', 'num_prompts_manual'): [
+        ('manual_ensemble', 'gpt2-xl', 8, num_prompts_manual)
         for num_prompts_manual in [1, 3, 5, 7, 10]
     ],
     # ('model_name', 'split_strategy', 'max_depth',): [
