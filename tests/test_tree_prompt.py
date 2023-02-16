@@ -8,6 +8,7 @@ import imodelsx.data
 import sklearn.tree
 import tprompt.prompts
 from transformers import AutoModelForCausalLM
+import logging
 
 def seed_and_get_tiny_data(seed=1, subsample_frac=0.05):
     np.random.seed(seed)
@@ -54,6 +55,8 @@ def test_stump_improves_acc(split_strategy='iprompt'):
 def test_stump_manual():
     X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data(
         seed=1, subsample_frac=0.05)
+    X_cv_text = X_test_text
+    y_cv = y_test
     
     class args:
         prompt = 'Placeholder' # we set this in the loop below
@@ -61,28 +64,45 @@ def test_stump_manual():
             0: ' Negative.',
             1: ' Positive.',
         }
-        batch_size = 64
+        batch_size = 32
         
     m = tprompt.stump.PromptStump(
         args=args(),
         split_strategy='manual', # 'manual' specifies that we use args.prompt
-        checkpoint='gpt2-xl', # EleutherAI/gpt-j-6B
+        checkpoint='gpt2', # EleutherAI/gpt-j-6B
         assert_checks=True,
     )
 
     # test different manual stumps
-    prompts = tprompt.prompts.PROMPTS_MOVIE_0
-    for p in prompts:
+    prompts = tprompt.prompts.PROMPTS_MOVIE_0[:2]
+
+    prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
+    prompt_features_test = np.zeros((len(X_test_text), len(prompts)))
+    prompt_features_cv = np.zeros((len(X_cv_text), len(prompts)))
+    accs_cv = np.zeros(len(prompts))
+    for i, p in enumerate(tqdm(prompts)):
         m.prompt = p
-        preds_train = m.predict(X_train_text)
+        
         acc_baseline = max(y_train.mean(), 1 - y_train.mean())
+        logging.info('prompt ' + p)
+        preds_train = m.predict(X_train_text)
         acc_train = np.mean(preds_train == y_train)
-        print('prompt', p)
-        # assert acc > acc_baseline, f'stump must improve acc but {acc:0.3f} <= {acc_baseline:0.2f}')
-        print(f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
+        prompt_features_train[:, i] = preds_train
+        logging.info(f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
+
         preds_test = m.predict(X_test_text)
         acc_test = np.mean(preds_test == y_test)
-        print(f'\tacc_test {acc_test:0.3f}')
+        prompt_features_test[:, i] = preds_test
+        logging.info(f'\tacc_test {acc_test:0.3f}')
+
+        preds_cv = m.predict(X_cv_text)
+        acc_cv = np.mean(preds_cv == y_cv)
+        prompt_features_cv[:, i] = preds_cv
+        logging.info(f'\tacc_cv {acc_cv:0.3f}')
+        accs_cv[i] = acc_cv
+
+    a = np.argsort(accs_cv.flatten())[::-1]
+    prompt_features_train[:, a], prompt_features_test[:, a], prompt_features_cv[:, a], np.array(prompts)[:, a].tolist()
 
 # def test_tree_monotonic_in_depth(split_strategy='linear'):
 #     X_train_text, X_test_text, y_train, X_train, y_test, feature_names = seed_and_get_tiny_data()

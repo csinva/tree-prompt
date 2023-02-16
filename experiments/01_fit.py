@@ -176,7 +176,7 @@ if __name__ == '__main__':
         )
     elif args.model_name == 'manual_tree':
         model = sklearn.tree.DecisionTreeClassifier(
-            max_leaf_nodes=args.num_prompts_manual,
+            max_leaf_nodes=args.num_prompts_manual + 1,
             random_state=args.seed,
         )
     elif args.model_name == 'manual_ensemble':

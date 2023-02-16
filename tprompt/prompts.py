@@ -49,6 +49,7 @@ def engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train
     prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
     prompt_features_test = np.zeros((len(X_test_text), len(prompts)))
     prompt_features_cv = np.zeros((len(X_cv_text), len(prompts)))
+    accs_cv = np.zeros(len(prompts))
     for i, p in enumerate(tqdm(prompts)):
         m.prompt = p
         
@@ -68,4 +69,7 @@ def engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train
         acc_cv = np.mean(preds_cv == y_cv)
         prompt_features_cv[:, i] = preds_cv
         logging.info(f'\tacc_cv {acc_cv:0.3f}')
-    return prompt_features_train, prompt_features_test, prompt_features_cv, prompts
+        accs_cv[i] = acc_cv
+
+    a = np.argsort(accs_cv.flatten())[::-1]
+    return prompt_features_train[:, a], prompt_features_test[:, a], prompt_features_cv[:, a], np.array(prompts)[:, a].tolist()
