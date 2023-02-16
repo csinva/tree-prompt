@@ -15,12 +15,12 @@ params_shared_dict = {
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
-    # ('model_name', 'checkpoint', 'batch_size', 'num_prompts_manual'): [
-    #     ('manual_tree', 'gpt2-xl', 32, num_prompts_manual)
-    #     for num_prompts_manual in [1, 3, 5, 7, 10]
-    # ],
+    ('model_name', 'checkpoint', 'batch_size', 'num_prompts_manual'): [
+        ('manual_tree', 'gpt2-xl', 16, num_prompts_manual)
+        for num_prompts_manual in [1, 3, 5, 7, 10]
+    ],
     ('model_name', 'checkpoint', 'batch_size'): [
-        ('manual_ensemble', 'gpt2-xl', 32, num_prompts_manual)
+        ('manual_ensemble', 'gpt2-xl', 16, num_prompts_manual)
         for num_prompts_manual in [1, 3, 5, 7, 10]
     ],
     # ('model_name', 'split_strategy', 'max_depth',): [
@@ -39,6 +39,6 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
-    gpu_ids = [2],
+    gpu_ids = [0, 1, 2],
     shuffle=False,
 )

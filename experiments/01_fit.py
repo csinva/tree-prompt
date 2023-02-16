@@ -17,6 +17,7 @@ import os
 import tprompt.tree
 import tprompt.data
 import tprompt.prompts
+import tprompt.ensemble
 import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 

@@ -196,8 +196,13 @@ class PromptStump(Stump):
             self.tokenizer.padding = True
             self.tokenizer.pad_token = self.tokenizer.eos_token
             inputs = (
-                self.tokenizer(prompts_batch, return_tensors="pt",
-                            padding=True, truncation=False, return_attention_mask=True)
+                self.tokenizer(
+                    prompts_batch,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    return_attention_mask=True
+                )
                 .to(self.model.device)
             )
 
