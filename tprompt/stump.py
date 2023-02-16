@@ -129,7 +129,7 @@ class PromptStump(Stump):
                 num_learned_tokens=6, # how long of a prompt to learn
                 n_shots=5, # number of examples in context
                 n_epochs=5, # how many epochs to search
-                batch_size=16, # batch size for iprompt
+                batch_size=self.args.batch_size, # batch size for iprompt
                 llm_float16=True, # whether to load the model in float_16
                 verbose=1, # how much to print
                 prefix_before_input=False, # sets template like ${input}${prefix}

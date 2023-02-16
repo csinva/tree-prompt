@@ -136,7 +136,7 @@ class Tree:
                             else:
                                 stump.child_right = stump_child
                             stumps_queue_new.append(stump_child)
-                            if self.verbose:
+                            if self.verbose and isinstance(stump_child, KeywordStump):
                                 logging.debug(f'\t\t {stump.stump_keywords} {stump.pos_or_neg}')
                             i += 1
 
