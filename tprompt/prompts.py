@@ -72,4 +72,4 @@ def engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train
         accs_cv[i] = acc_cv
 
     a = np.argsort(accs_cv.flatten())[::-1]
-    return prompt_features_train[:, a], prompt_features_test[:, a], prompt_features_cv[:, a], np.array(prompts)[:, a].tolist()
+    return prompt_features_train[:, a], prompt_features_test[:, a], prompt_features_cv[:, a], np.array(prompts)[a].tolist()
