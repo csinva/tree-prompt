@@ -33,6 +33,30 @@ PROMPTS_MOVIE_0 = [
         ' I thought the length of the movie was',
 ]
 
+def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
+    assert args.prompt_source in ['manual', 'data_demonstrations']
+    random.seed(seed)
+    if args.prompt_source == 'manual':
+        return PROMPTS_MOVIE_0
+    elif args.prompt_source == 'data_demonstrations':
+        num_prompts_data_demonstrations = args.num_prompts_data_demonstrations
+        template = args.template_data_demonstrations
+        unique_ys = sorted(list(set(y_train)), key=lambda x: -x) # 1, 0 since positive usually comes first
+        examples_by_y = {}
+        for y in unique_ys:
+            examples_by_y[y] = sorted(list(filter(lambda ex: ex[1]==y, zip(X_train_text, y_train))))
+        prompts = []
+        while len(prompts) < num_prompts_data_demonstrations:
+            prompt = ''
+            for y in unique_ys:
+                example = random.choice(examples_by_y[y])
+                text, _ = example
+                prompt += template % (text, verbalizer[y]) + '\n'
+            if prompt not in prompts:
+                prompts.append(prompt)
+        return prompts
+
+
 def engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv):
     logging.info('calculating prompt features with ' + args.checkpoint)
     args.prompt = 'Placeholder'
@@ -45,7 +69,7 @@ def engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train
     )
 
     # test different manual stumps
-    prompts = PROMPTS_MOVIE_0
+    prompts = get_prompts(args, X_train_text, y_train, m._get_verbalizer())
     prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
     prompt_features_test = np.zeros((len(X_test_text), len(prompts)))
     prompt_features_cv = np.zeros((len(X_cv_text), len(prompts)))

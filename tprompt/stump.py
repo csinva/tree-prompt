@@ -162,11 +162,19 @@ class PromptStump(Stump):
         
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
-        preds = self._get_logit_for_target_tokens_batched(
-            [x + self.prompt for x in X_text],
-            target_token_ids,
-            batch_size=self.args.batch_size
-        )
+        if self.args.prompt_source == 'data_demonstrations':
+            template = self.args.template_data_demonstrations
+            preds = self._get_logit_for_target_tokens_batched(
+                [self.prompt + template%(x, '') for x in X_text],
+                target_token_ids,
+                batch_size=self.args.batch_size
+            )
+        else:
+            preds = self._get_logit_for_target_tokens_batched(
+                [x + self.prompt for x in X_text],
+                target_token_ids,
+                batch_size=self.args.batch_size
+            )
         # preds = np.zeros((len(X_text), len(target_token_ids)))
         # for i, x in enumerate(X_text):
         #     preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)

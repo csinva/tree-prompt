@@ -34,3 +34,6 @@
 - Keep updated requirements in setup.py
 - Follow sklearn apis whenever possible
 - Use Huggingface whenever possible, then pytorch
+
+# Use example demonstrations
+python experiments/01_fit.py  --prompt_source data_demonstrations --num_prompts_data_demonstrations 10 --use_cache 0 --model_name manual_tree --batch_size 32
