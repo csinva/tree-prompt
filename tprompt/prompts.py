@@ -13,7 +13,7 @@ import os
 from os.path import dirname, basename, join
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 from joblib import Memory
-
+import argparse
 
 PROMPTS_MOVIE_0 = [
         # ' What is the sentiment expressed by the reviewer for the movie?',
@@ -66,7 +66,9 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
 
 def engineer_prompt_features(
         args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv,
-        cache_dir = join(path_to_repo, 'results', 'cache_features')):
+        cache_dir = join(path_to_repo, 'results', 'cache_features'),
+        arg_names_cache = ['checkpoint', 'verbalizer_num', 'prompt_source', 'template_data_demonstrations'],
+    ):
     logging.info('calculating prompt features with ' + args.checkpoint)
     args.prompt = 'Placeholder'
         
@@ -87,7 +89,9 @@ def engineer_prompt_features(
         m.prompt = p
         
         def _calc_features_single_prompt(
-                args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv):
+                args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv,
+                m, p
+            ):
             acc_baseline = max(y_train.mean(), 1 - y_train.mean())
             logging.info('prompt ' + p)
             preds_train = m.predict(X_train_text)
@@ -106,11 +110,16 @@ def engineer_prompt_features(
         compute_func = _calc_features_single_prompt
         if cache_dir is not None:
             os.makedirs(cache_dir, exist_ok=True)
-            memory = Memory(cache_dir, verbose=0)
+            memory = Memory(cache_dir, verbose=1)
             compute_func = memory.cache(compute_func)
 
+        args_cache = argparse.Namespace(
+            **{k: v for k, v in args._get_kwargs() if k in arg_names_cache}
+        )
         preds_train, preds_test, preds_cv, acc_cv = \
-            compute_func(args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv)
+            compute_func(
+                args_cache, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv,
+                m, p)
 
         prompt_features_train[:, i] = preds_train
         prompt_features_test[:, i] = preds_test

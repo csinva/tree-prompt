@@ -6,14 +6,14 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    'save_dir': [join('/home/chansingh/mntv1', 'tree-prompt', 'feb19')],
+    'save_dir': [join('/home/chansingh/mntv1', 'tree-prompt', 'feb20')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     # 'dataset_name': ['rotten_tomatoes', 'financial_phrasebank', 'emotion', 'sst2'],
     # 'dataset_name': ['rotten_tomatoes'], #, 'financial_phrasebank', 'emotion', 'sst2'],
     # 'dataset_name': ['imdb'],
     'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
     'verbalizer_num': [0], # [0, 1],
-    'checkpoint': 'gpt2-xl',
+    'checkpoint': ['gpt2-xl'],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -21,12 +21,12 @@ params_coupled_dict = {
     ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
         (model_name, 4, num_prompts, 'manual')
         for num_prompts in [1, 3, 5, 7, 10]
-        for model_name in ['manual_ensemble', 'manual_tree']
+        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
     ],
     ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
-        (model_name, 'gpt2-xl', 4, num_prompts, 'data_demonstrations')
+        (model_name, 4, num_prompts, 'data_demonstrations')
         for num_prompts in [1, 3, 5, 7, 10]
-        for model_name in ['manual_ensemble', 'manual_tree']
+        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
     ],
     # ('model_name', 'split_strategy', 'max_depth',): [
     #     ('tprompt', 'iprompt', max_depth)

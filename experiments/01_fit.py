@@ -91,7 +91,9 @@ def add_main_args(parser):
                         help='directory for saving')
 
     # model args
-    parser.add_argument('--model_name', type=str, default='tprompt', choices=['tprompt', 'manual_tree', 'manual_ensemble'],
+    parser.add_argument('--model_name', type=str, default='tprompt',
+                        choices=['tprompt',
+                                 'manual_tree', 'manual_ensemble', 'manual_boosting'],
                         help='name of model')
     parser.add_argument('--split_strategy', type=str, choices=['iprompt', 'cart', 'linear'],
                         default='iprompt', help='strategy to use to split each stump')
@@ -185,8 +187,13 @@ if __name__ == '__main__':
             random_state=args.seed,
         )
     elif args.model_name == 'manual_ensemble':
-        model = tprompt.ensemble.NaiveEnsembleClassifier(
+        model = tprompt.ensemble.IdentityEnsembleClassifier(
             n_estimators=args.num_prompts,
+        )
+    elif args.model_name == 'manual_boosting':
+        model = tprompt.ensemble.IdentityEnsembleClassifier(
+            n_estimators=args.num_prompts,
+            boosting=True,
         )
 
     # set up saving dictionary + save params file
