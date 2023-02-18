@@ -97,8 +97,8 @@ def add_main_args(parser):
                         default='iprompt', help='strategy to use to split each stump')
     parser.add_argument('--max_depth', type=int,
                         default=2, help='max depth of tree')
-    parser.add_argument('--num_prompts_manual', type=int,
-                        default=1, help='only for manual things!')
+    parser.add_argument('--num_prompts', type=int,
+                        default=1, help='only for manual things or data demonstrations (not applied when model_name==tprompt)')
     parser.add_argument('--checkpoint', type=str, default='EleutherAI/gpt-j-6B',
                         help='the underlying model used for prediction (or for constructing features from prompt)')
     parser.add_argument('--checkpoint_prompting', type=str, default='EleutherAI/gpt-j-6B',
@@ -108,8 +108,6 @@ def add_main_args(parser):
     parser.add_argument('--prompt_source', type=str, default='manual', choices=['manual', 'data_demonstrations'],
                         help='''where prompts come from. Setting to manual would use PROMPTS_MOVIE_0, and data_demonstrations
                         would use example demonstrations from training set.''')
-    parser.add_argument('--num_prompts_data_demonstrations', type=int,
-                        default=10, help='only for --prompt_source data_demonstrations!')
     parser.add_argument('--template_data_demonstrations', type=str,
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
             
@@ -183,12 +181,12 @@ if __name__ == '__main__':
         )
     elif args.model_name == 'manual_tree':
         model = sklearn.tree.DecisionTreeClassifier(
-            max_leaf_nodes=args.num_prompts_manual + 1,
+            max_leaf_nodes=args.num_prompts + 1,
             random_state=args.seed,
         )
     elif args.model_name == 'manual_ensemble':
         model = tprompt.ensemble.NaiveEnsembleClassifier(
-            n_estimators=args.num_prompts_manual,
+            n_estimators=args.num_prompts,
         )
 
     # set up saving dictionary + save params file

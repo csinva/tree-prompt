@@ -13,17 +13,20 @@ params_shared_dict = {
     # 'dataset_name': ['imdb'],
     'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
     'verbalizer_num': [0], # [0, 1],
+    'checkpoint': 'gpt2-xl',
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
-    ('model_name', 'checkpoint', 'batch_size', 'num_prompts_manual'): [
-        ('manual_tree', 'gpt2-xl', 4, num_prompts_manual)
-        for num_prompts_manual in [1, 3, 5, 7, 10]
+    ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
+        (model_name, 4, num_prompts, 'manual')
+        for num_prompts in [1, 3, 5, 7, 10]
+        for model_name in ['manual_ensemble', 'manual_tree']
     ],
-    ('model_name', 'checkpoint', 'batch_size', 'num_prompts_manual'): [
-        ('manual_ensemble', 'gpt2-xl', 4, num_prompts_manual)
-        for num_prompts_manual in [1, 3, 5, 7, 10]
+    ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
+        (model_name, 'gpt2-xl', 4, num_prompts, 'data_demonstrations')
+        for num_prompts in [1, 3, 5, 7, 10]
+        for model_name in ['manual_ensemble', 'manual_tree']
     ],
     # ('model_name', 'split_strategy', 'max_depth',): [
     #     ('tprompt', 'iprompt', max_depth)
@@ -42,5 +45,5 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
     gpu_ids = [0, 1, 2],
-    shuffle=False,
+    shuffle=True,
 )

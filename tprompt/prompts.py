@@ -8,6 +8,12 @@ import imodelsx.data
 import logging
 import sklearn.tree
 from transformers import AutoModelForCausalLM
+from joblib import Memory
+import os
+from os.path import dirname, basename, join
+path_to_repo = dirname(dirname(os.path.abspath(__file__)))
+from joblib import Memory
+
 
 PROMPTS_MOVIE_0 = [
         # ' What is the sentiment expressed by the reviewer for the movie?',
@@ -39,14 +45,13 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
     if args.prompt_source == 'manual':
         return PROMPTS_MOVIE_0
     elif args.prompt_source == 'data_demonstrations':
-        num_prompts_data_demonstrations = args.num_prompts_data_demonstrations
         template = args.template_data_demonstrations
         unique_ys = sorted(list(set(y_train)), key=lambda x: -x) # 1, 0 since positive usually comes first
         examples_by_y = {}
         for y in unique_ys:
             examples_by_y[y] = sorted(list(filter(lambda ex: ex[1]==y, zip(X_train_text, y_train))))
         prompts = []
-        while len(prompts) < num_prompts_data_demonstrations:
+        while len(prompts) < args.num_prompts:
             prompt = ''
             for y in unique_ys:
                 example = random.choice(examples_by_y[y])
@@ -57,7 +62,11 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
         return prompts
 
 
-def engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv):
+
+
+def engineer_prompt_features(
+        args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv,
+        cache_dir = join(path_to_repo, 'results', 'cache_features')):
     logging.info('calculating prompt features with ' + args.checkpoint)
     args.prompt = 'Placeholder'
         
@@ -77,22 +86,35 @@ def engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train
     for i, p in enumerate(tqdm(prompts)):
         m.prompt = p
         
-        acc_baseline = max(y_train.mean(), 1 - y_train.mean())
-        logging.info('prompt ' + p)
-        preds_train = m.predict(X_train_text)
-        acc_train = np.mean(preds_train == y_train)
+        def _calc_features_single_prompt(
+                args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv):
+            acc_baseline = max(y_train.mean(), 1 - y_train.mean())
+            logging.info('prompt ' + p)
+            preds_train = m.predict(X_train_text)
+            acc_train = np.mean(preds_train == y_train)
+            logging.info(f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
+
+            preds_test = m.predict(X_test_text)
+            acc_test = np.mean(preds_test == y_test)
+            logging.info(f'\tacc_test {acc_test:0.3f}')
+
+            preds_cv = m.predict(X_cv_text)
+            acc_cv = np.mean(preds_cv == y_cv)
+            logging.info(f'\tacc_cv {acc_cv:0.3f}')
+            return preds_train, preds_test, preds_cv, acc_cv
+        
+        compute_func = _calc_features_single_prompt
+        if cache_dir is not None:
+            os.makedirs(cache_dir, exist_ok=True)
+            memory = Memory(cache_dir, verbose=0)
+            compute_func = memory.cache(compute_func)
+
+        preds_train, preds_test, preds_cv, acc_cv = \
+            compute_func(args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv)
+
         prompt_features_train[:, i] = preds_train
-        logging.info(f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
-
-        preds_test = m.predict(X_test_text)
-        acc_test = np.mean(preds_test == y_test)
         prompt_features_test[:, i] = preds_test
-        logging.info(f'\tacc_test {acc_test:0.3f}')
-
-        preds_cv = m.predict(X_cv_text)
-        acc_cv = np.mean(preds_cv == y_cv)
         prompt_features_cv[:, i] = preds_cv
-        logging.info(f'\tacc_cv {acc_cv:0.3f}')
         accs_cv[i] = acc_cv
 
     a = np.argsort(accs_cv.flatten())[::-1]
