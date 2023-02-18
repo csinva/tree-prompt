@@ -105,6 +105,13 @@ def add_main_args(parser):
                         help='the model used for finding the prompt')
     parser.add_argument('--verbalizer_num', type=int, default=0,
                         help='which verbalizer to use')
+    parser.add_argument('--prompt_source', type=str, default='manual', choices=['manual', 'data_demonstrations'],
+                        help='''where prompts come from. Setting to manual would use PROMPTS_MOVIE_0, and data_demonstrations
+                        would use example demonstrations from training set.''')
+    parser.add_argument('--num_prompts_data_demonstrations', type=int,
+                        default=10, help='only for --prompt_source data_demonstrations!')
+    parser.add_argument('--template_data_demonstrations', type=str,
+                        default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
             
     return parser
 
