@@ -6,7 +6,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    'save_dir': [join('/home/chansingh/mntv1', 'tree-prompt', 'feb20')],
+    'save_dir': [join('/home/chansingh/mntv1', 'tree-prompt', 'feb21')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     # 'dataset_name': ['rotten_tomatoes', 'financial_phrasebank', 'emotion', 'sst2'],
     # 'dataset_name': ['rotten_tomatoes'], #, 'financial_phrasebank', 'emotion', 'sst2'],

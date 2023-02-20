@@ -46,12 +46,14 @@ MODELS_RENAME_DICT = {
 
 XLAB = {
     'max_depth': 'Tree depth',
-    'n_estimators': '# estimators'
+    'n_estimators': '# estimators',
+    'mean_llm_calls': '# LLM calls',
+    'num_prompts': '# prompts',
 }
 
 def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf'):
-    R, C = 1, 3
     dset_names = rp['dataset_name'].unique()
+    R, C = 1, min(3, len(dset_names))
     plt.figure(figsize=(C * 2.5, R * 2.5))
     for i in range(R * C):
         plt.subplot(R, C, i + 1)

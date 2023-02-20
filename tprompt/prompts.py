@@ -62,16 +62,14 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
         return prompts
 
 
-
-
 def engineer_prompt_features(
-        args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv,
+        args, X_train_text, X_test_text, y_train, y_test, 
         cache_dir = join(path_to_repo, 'results', 'cache_features'),
         arg_names_cache = ['checkpoint', 'verbalizer_num', 'prompt_source', 'template_data_demonstrations'],
     ):
     logging.info('calculating prompt features with ' + args.checkpoint)
     args.prompt = 'Placeholder'
-        
+    
     # uses args.verbalizer
     m = tprompt.stump.PromptStump(
         args=args,
@@ -83,17 +81,17 @@ def engineer_prompt_features(
     prompts = get_prompts(args, X_train_text, y_train, m._get_verbalizer())
     prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
     prompt_features_test = np.zeros((len(X_test_text), len(prompts)))
-    prompt_features_cv = np.zeros((len(X_cv_text), len(prompts)))
-    accs_cv = np.zeros(len(prompts))
+    accs_train = np.zeros(len(prompts))
+
+    # compute features for prompts
     for i, p in enumerate(tqdm(prompts)):
         m.prompt = p
         
         def _calc_features_single_prompt(
-                args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv,
-                m, p
+                args, X_train_text, X_test_text, y_train, y_test, m, p
             ):
-            acc_baseline = max(y_train.mean(), 1 - y_train.mean())
             logging.info('prompt ' + p)
+            acc_baseline = max(y_train.mean(), 1 - y_train.mean())
             preds_train = m.predict(X_train_text)
             acc_train = np.mean(preds_train == y_train)
             logging.info(f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
@@ -102,10 +100,7 @@ def engineer_prompt_features(
             acc_test = np.mean(preds_test == y_test)
             logging.info(f'\tacc_test {acc_test:0.3f}')
 
-            preds_cv = m.predict(X_cv_text)
-            acc_cv = np.mean(preds_cv == y_cv)
-            logging.info(f'\tacc_cv {acc_cv:0.3f}')
-            return preds_train, preds_test, preds_cv, acc_cv
+            return preds_train, preds_test, acc_train
         
         compute_func = _calc_features_single_prompt
         if cache_dir is not None:
@@ -116,15 +111,12 @@ def engineer_prompt_features(
         args_cache = argparse.Namespace(
             **{k: v for k, v in args._get_kwargs() if k in arg_names_cache}
         )
-        preds_train, preds_test, preds_cv, acc_cv = \
-            compute_func(
-                args_cache, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv,
-                m, p)
+        preds_train, preds_test, acc_train = \
+            compute_func(args_cache, X_train_text, X_test_text, y_train, y_test, m, p)
 
         prompt_features_train[:, i] = preds_train
         prompt_features_test[:, i] = preds_test
-        prompt_features_cv[:, i] = preds_cv
-        accs_cv[i] = acc_cv
+        accs_train[i] = acc_train
 
-    a = np.argsort(accs_cv.flatten())[::-1]
-    return prompt_features_train[:, a], prompt_features_test[:, a], prompt_features_cv[:, a], np.array(prompts)[a].tolist()
+    a = np.argsort(accs_train.flatten())[::-1]
+    return prompt_features_train[:, a], prompt_features_test[:, a], np.array(prompts)[a].tolist()

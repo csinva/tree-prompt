@@ -164,11 +164,11 @@ if __name__ == '__main__':
     X_train, X_test, feature_names = \
         tprompt.data.convert_text_data_to_counts_array(
             X_train_text, X_test_text, ngrams=2)
+    if args.model_name.startswith('manual'):
+        X_train, X_test, feature_names = \
+            tprompt.prompts.engineer_prompt_features(args, X_train_text, X_test_text, y_train, y_test)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
-    if args.model_name.startswith('manual'):
-        X_train, X_test, X_cv, feature_names = \
-            tprompt.prompts.engineer_prompt_features(args, X_train_text, X_test_text, X_cv_text, y_train, y_test, y_cv)
     args.verbalizer = get_verbalizer(args)
 
     # load model
