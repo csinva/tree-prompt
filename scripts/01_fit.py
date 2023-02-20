@@ -19,14 +19,10 @@ params_shared_dict = {
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
     ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
-        (model_name, 4, num_prompts, 'manual')
+        (model_name, 4, num_prompts, prompt_source)
         for num_prompts in [1, 3, 5, 7, 10]
         for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-    ],
-    ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
-        (model_name, 4, num_prompts, 'data_demonstrations')
-        for num_prompts in [1, 3, 5, 7, 10]
-        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
+        for prompt_source in ['manual', 'data_demonstrations']
     ],
     # ('model_name', 'split_strategy', 'max_depth',): [
     #     ('tprompt', 'iprompt', max_depth)
@@ -46,4 +42,5 @@ submit_utils.run_args_list(
     actually_run=True,
     gpu_ids = [0, 1, 2, 3],
     shuffle=True,
+    reverse=True,
 )

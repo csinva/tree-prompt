@@ -110,7 +110,7 @@ def engineer_prompt_features(
         compute_func = _calc_features_single_prompt
         if cache_dir is not None:
             os.makedirs(cache_dir, exist_ok=True)
-            memory = Memory(cache_dir, verbose=1)
+            memory = Memory(cache_dir, verbose=0)
             compute_func = memory.cache(compute_func)
 
         args_cache = argparse.Namespace(
