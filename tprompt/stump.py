@@ -11,6 +11,7 @@ from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 import torch.cuda
+import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from .utils import load_lm
@@ -120,31 +121,34 @@ class PromptStump(Stump):
         if self.split_strategy == 'manual':
             self.prompt = self.args.prompt
         else:
-            print("calling explain_dataset_iprompt with verbosity", self.verbose)
             self.model = self.model.to('cpu')
+            print(f'calling explain_dataset_iprompt with batch size {self.args.batch_size}')
             prompts, metadata = imodelsx.explain_dataset_iprompt(
                 input_strings=input_strings,
                 output_strings=output_strings,
                 checkpoint=self.checkpoint, # which language model to use
-                num_learned_tokens=6, # how long of a prompt to learn
-                n_shots=5, # number of examples in context
+                num_learned_tokens=12, # how long of a prompt to learn
+                n_shots=1, # number of examples in context
                 n_epochs=5, # how many epochs to search
                 batch_size=self.args.batch_size, # batch size for iprompt
-                llm_float16=True, # whether to load the model in float_16
+                llm_float16=False, # whether to load the model in float_16
                 verbose=1, # how much to print
                 prefix_before_input=False, # sets template like ${input}${prefix}
                 mask_possible_answers=True, # only compute loss over valid output tokens
                 generation_repetition_penalty=1.0,
-                pop_topk_strategy='all',
+                pop_topk_strategy='different_start_token',
                 pop_criterion='acc',
-                # max_n_datapoints=100, # restrict this for now
+                max_n_datapoints=len(input_strings),
+                # on an a6000 gpu with gpt2-xl in fp16 and batch size 32,
+                # 100 steps takes around 30 minutes.
+                max_n_steps=20, # limit search by a fixed number of steps
             )
-            print('prompts', prompts)
             torch.cuda.empty_cache()
             self.model = self.model.to(self.device)
 
             # save stuff
             self.prompt = prompts[0]
+            print(f'Got {len(prompts)} prompts. Top prompt: `{prompts[0]}`')
             self.prompts = prompts
             self.meta = metadata
 
@@ -193,10 +197,15 @@ class PromptStump(Stump):
         """
         logit_targets_list = []
         batch_num = 0
+
+        pbar = tqdm.tqdm(
+            total=len(prompts), leave=False, desc='getting predictions', colour="red"
+        )
         while True:
             batch_start = batch_num * batch_size
             batch_end = (batch_num + 1) * batch_size
             batch_num += 1
+            pbar.update(batch_size)
             if batch_start >= len(prompts):
                 return np.array(logit_targets_list)
 
