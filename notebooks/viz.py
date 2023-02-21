@@ -39,9 +39,10 @@ DSETS_RENAME_DICT = {
 }
 
 MODELS_RENAME_DICT = {
-    'llm_tree': 'LLM-Tree',
-    'id3': 'ID3',
     'decision_tree': 'CART',
+    'manual_tree': 'TreePrompt',
+    'manual_ensemble': 'Prompt ensemble (best-first)',
+    'manual_boosting': 'Prompt ensemble (boosting)',
 }
 
 XLAB = {
@@ -54,14 +55,13 @@ XLAB = {
 def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf'):
     dset_names = rp['dataset_name'].unique()
     R, C = 1, min(3, len(dset_names))
-    plt.figure(figsize=(C * 2.5, R * 2.5))
+    fig = plt.figure(figsize=(C * 2.5, R * 2.5))
     for i in range(R * C):
         plt.subplot(R, C, i + 1)
         dset_name = dset_names[i]
         rd = rp[rp.dataset_name == dset_name]
         groupings = 'model_name'
         for (k, g) in rd.groupby(by=groupings):
-            # print(g.columns)
 
             if 'llm_tree' in k:
                 kwargs = {'lw': 1.5, 'alpha': 0.9, 'ls': '-', 'marker': '.', 'color': 'black'}
@@ -75,10 +75,11 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
     plt.legend(
         title_fontsize='xx-small',
         labelcolor='linecolor',
-        # bbox_to_anchor=(1.5, 1.1),
+        # bbox_to_anchor=(1.2, 1.1),
         fontsize='x-small'
     )
     plt.tight_layout()
+    fig.subplots_adjust(right=0.85)
     os.makedirs(os.path.dirname(fname_save), exist_ok=True)
     plt.savefig(fname_save, bbox_inches='tight')
     plt.show()

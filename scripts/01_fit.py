@@ -24,6 +24,12 @@ params_coupled_dict = {
         for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
         for prompt_source in ['manual', 'data_demonstrations']
     ],
+    ('model_name', 'batch_size', 'prompt_source'): [
+        (model_name, 4, prompt_source)
+        for model_name in ['manual_gbdt']
+        for prompt_source in ['manual', 'data_demonstrations']
+    ],
+    
     # ('model_name', 'split_strategy', 'max_depth',): [
     #     ('tprompt', 'iprompt', max_depth)
     #    for max_depth in [1, 3, 5]),

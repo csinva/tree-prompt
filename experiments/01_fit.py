@@ -8,6 +8,7 @@ from os.path import join, dirname
 import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, balanced_accuracy_score, brier_score_loss
 from sklearn.model_selection import train_test_split
+import sklearn.ensemble
 import sklearn.tree
 import pickle as pkl
 import imodelsx.data
@@ -21,9 +22,10 @@ import tprompt.ensemble
 import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
+
 def get_verbalizer(args):
     VERB0 = {0: ' Negative.', 1: ' Positive.'}
-    VERB1 = {0: ' No.', 1: ' Yes.',}   
+    VERB1 = {0: ' No.', 1: ' Yes.', }
     VERB_LIST_DEFAULT = [VERB0, VERB1]
     DATA_OUTPUT_STRINGS = {
         'rotten_tomatoes': [VERB0, VERB1],
@@ -32,6 +34,7 @@ def get_verbalizer(args):
         'financial_phrasebank': [VERB0, VERB1],
     }
     return DATA_OUTPUT_STRINGS.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
+
 
 def evaluate_model(model, X_train, X_cv, X_test,
                    X_train_text, X_cv_text, X_test_text,
@@ -52,7 +55,7 @@ def evaluate_model(model, X_train, X_cv, X_test,
                                              [(X_train_text, X_train, y_train),
                                              (X_cv_text, X_cv, y_cv),
                                              (X_test_text, X_test, y_test)]):
-        # metrics discrete                                             
+        # metrics discrete
         predict_parameters = inspect.signature(model.predict).parameters.keys()
         if 'X_text' in predict_parameters:
             y_pred_ = model.predict(X_text=X_text_).astype(int)
@@ -73,6 +76,8 @@ def evaluate_model(model, X_train, X_cv, X_test,
     return r
 
 # initialize args
+
+
 def add_main_args(parser):
     """Caching uses the non-default values from argparse to name the saving directory.
     Changing the default arg an argument will break cache compatibility with previous runs.
@@ -92,9 +97,12 @@ def add_main_args(parser):
 
     # model args
     parser.add_argument('--model_name', type=str, default='tprompt',
-                        choices=['tprompt',
-                                 'manual_tree', 'manual_ensemble', 'manual_boosting'],
-                        help='name of model')
+                        choices=[
+                            'tprompt',
+                            'manual_tree', 'manual_ensemble', 'manual_boosting',
+                            'manual_gbdt' # manual_gbdt will ignore other params like num_prompts
+                        ],
+                        help='name of model. "Manual" specifies that it first calculates all features and then uses sklearn tree')
     parser.add_argument('--split_strategy', type=str, choices=['iprompt', 'cart', 'linear'],
                         default='iprompt', help='strategy to use to split each stump')
     parser.add_argument('--max_depth', type=int,
@@ -112,8 +120,9 @@ def add_main_args(parser):
                         would use example demonstrations from training set.''')
     parser.add_argument('--template_data_demonstrations', type=str,
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
-            
+
     return parser
+
 
 def add_computational_args(parser):
     """Arguments that only affect computation and not the results (shouldnt use when checking cache)
@@ -125,6 +134,7 @@ def add_computational_args(parser):
     parser.add_argument('--batch_size', type=int, default=128,
                         help='batch size for manual_tree feature extraction')
     return parser
+
 
 if __name__ == '__main__':
     # get args
@@ -141,7 +151,7 @@ if __name__ == '__main__':
     # set up saving directory + check for cache
     already_cached, save_dir_unique = cache_save_utils.get_save_dir_unique(
         parser, parser_without_computational_args, args, args.save_dir)
-    
+
     if args.use_cache and already_cached:
         logging.info(
             f'cached version exists! Successfully skipping :)\n\n\n')
@@ -166,7 +176,8 @@ if __name__ == '__main__':
             X_train_text, X_test_text, ngrams=2)
     if args.model_name.startswith('manual'):
         X_train, X_test, feature_names = \
-            tprompt.prompts.engineer_prompt_features(args, X_train_text, X_test_text, y_train, y_test)
+            tprompt.prompts.engineer_prompt_features(
+                args, X_train_text, X_test_text, y_train, y_test)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
     args.verbalizer = get_verbalizer(args)
@@ -195,6 +206,10 @@ if __name__ == '__main__':
             n_estimators=args.num_prompts,
             boosting=True,
         )
+    elif args.model_name == 'manual_gbdt':
+        model = sklearn.ensemble.GradientBoostingClassifier(
+            random_state=args.seed,
+        )
 
     # set up saving dictionary + save params file
     r = defaultdict(list)
@@ -211,7 +226,7 @@ if __name__ == '__main__':
     if 'X_text' in fit_parameters:
         kwargs['X_text'] = X_train_text
     model.fit(X=X_train, y=y_train, **kwargs)
-    
+
     # evaluate
     r = evaluate_model(
         model,
@@ -226,7 +241,8 @@ if __name__ == '__main__':
         r['prompt'] = r['prompts_list'][0]
     # r['feature_names'] = feature_names
     if isinstance(model, sklearn.tree.DecisionTreeClassifier):
-        r['str_tree'] = sklearn.tree.export_text(model, feature_names=feature_names)
+        r['str_tree'] = sklearn.tree.export_text(
+            model, feature_names=feature_names)
     else:
         r['str_tree'] = str(model)
 
