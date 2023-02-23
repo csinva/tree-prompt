@@ -6,7 +6,7 @@ from tprompt.stump import KeywordStump, PromptStump, Stump
 import tprompt.data
 import logging
 import warnings
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class Tree:
     def __init__(
@@ -69,10 +69,11 @@ class Tree:
             self.feature_names = np.array(self.feature_names).flatten()
 
         # set up arguments
-        model = AutoModelForCausalLM.from_pretrained(self.checkpoint).to(self.device)
+        model = AutoModelForCausalLM.from_pretrained(self.checkpoint)
+        tokenizer = AutoTokenizer.from_pretrained(self.checkpoint)
         stump_kwargs = dict(
             args=self.args,
-            tokenizer=self.tokenizer,
+            tokenizer=tokenizer,
             split_strategy=self.split_strategy,
             assert_checks=self.assert_checks,
             verbose=self.verbose,
