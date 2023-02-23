@@ -34,6 +34,7 @@ DSETS_RENAME_DICT = {
     'emotion': 'Emotion',
     'sst2': 'SST2',
     'tweet_eval': 'Tweet (Hate)',
+    'imdb': 'IMDB',
     'rotten_tomatoes': 'Rotten tomatoes',
     'financial_phrasebank': 'Financial phrasebank',
 }
@@ -41,8 +42,8 @@ DSETS_RENAME_DICT = {
 MODELS_RENAME_DICT = {
     'decision_tree': 'CART',
     'manual_tree': 'TreePrompt',
-    'manual_ensemble': 'Prompt ensemble (best-first)',
-    'manual_boosting': 'Prompt ensemble (boosting)',
+    'manual_ensemble': 'Ensemble (best-first)',
+    'manual_boosting': 'Ensemble (boosting)',
 }
 
 XLAB = {
@@ -82,7 +83,7 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
     fig.subplots_adjust(right=0.85)
     os.makedirs(os.path.dirname(fname_save), exist_ok=True)
     plt.savefig(fname_save, bbox_inches='tight')
-    plt.show()
+    # plt.show()
 
 def plot_train_and_test(ravg, groupings, metric, x='max_depth'):
     for dataset_name in ravg['dataset_name'].unique():

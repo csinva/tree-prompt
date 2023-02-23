@@ -6,6 +6,7 @@ from tprompt.stump import KeywordStump, PromptStump, Stump
 import tprompt.data
 import logging
 import warnings
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from transformers import AutoModelForCausalLM
 
 class Tree:
@@ -222,3 +223,9 @@ class Tree:
         if stump.child_right:
             self._set_prompts_list(stump.child_right)
         return self.prompts_list
+
+class TreeRegressor(Tree, RegressorMixin):
+    ...
+
+class TreeClassifier(Tree, ClassifierMixin):
+    ...

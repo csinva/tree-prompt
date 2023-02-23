@@ -3,11 +3,12 @@ from typing import List
 from imodelsx import submit_utils
 from os.path import dirname, join
 import os.path
+import torch.cuda
 repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 
-# save_dir = '/home/chansingh/mntv1'
-save_dir = '/home/jxm3/research/prompting/tree-prompt/results'
+save_dir = '/home/chansingh/mntv1'
+# save_dir = '/home/jxm3/research/prompting/tree-prompt/results'
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
@@ -19,22 +20,24 @@ params_shared_dict = {
     # 'dataset_name': ['imdb'],
     'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
     'verbalizer_num': [0], # [0, 1],
-    'checkpoint': ['gpt2'], # gpt2? gpt2-xl?
+    'checkpoint': ['gpt2-xl'], # gpt2? gpt2-xl?
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
-    # ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
-    #     (model_name, 4, num_prompts, prompt_source)
-    #     for num_prompts in [1, 3, 5, 7, 10]
-    #     for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-    #     for prompt_source in ['manual', 'data_demonstrations']
-    # ],
-    # ('model_name', 'batch_size', 'prompt_source'): [
-    #     (model_name, 4, prompt_source)
-    #     for model_name in ['manual_gbdt']
-    #     for prompt_source in ['manual', 'data_demonstrations']
-    # ],
+    ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
+        (model_name, 4, num_prompts, prompt_source)
+        for num_prompts in [1, 3, 5, 7, 10]
+        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
+        for prompt_source in ['data_demonstrations']
+        # for prompt_source in ['manual', 'data_demonstrations']
+    ],
+    ('model_name', 'batch_size', 'prompt_source'): [
+        (model_name, 4, prompt_source)
+        for model_name in ['manual_gbdt']
+        for prompt_source in ['data_demonstrations']
+        # for prompt_source in ['manual', 'data_demonstrations']
+    ],
     
     # ('model_name', 'split_strategy', 'max_depth',): [
     #     ('tprompt', 'iprompt', max_depth)
@@ -45,9 +48,9 @@ params_coupled_dict = {
     #     for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
     #     for prompt_source in ['manual', 'data_demonstrations']
     # ],
-    ('model_name', 'split_strategy', 'batch_size', 'max_depth',): [
-        ('tprompt', 'iprompt', 32, max_depth) for max_depth in [1, 3, 5]
-    ],
+    # ('model_name', 'split_strategy', 'batch_size', 'max_depth',): [
+        # ('tprompt', 'iprompt', 32, max_depth) for max_depth in [1, 3, 5]
+    # ],
 }
 
 # Args list is a list of dictionaries
@@ -68,7 +71,11 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
-    gpu_ids = get_gpu_ids(),
+    # gpu_ids = get_gpu_ids(),
+    
+    gpu_ids = [0, 1, 2, 3],
     shuffle=True,
-    reverse=True,
+
+    # gpu_ids = [0],
+    # shuffle=False,
 )

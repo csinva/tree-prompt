@@ -246,6 +246,7 @@ if __name__ == '__main__':
     else:
         r['str_tree'] = str(model)
 
+    r['feature_names'] = feature_names
     pkl.dump(r, open(join(save_dir_unique, 'results.pkl'), 'wb'))
     pkl.dump(model, open(join(save_dir_unique, 'model.pkl'), 'wb'))
     logging.info('Succesfully completed :)\n\n')
