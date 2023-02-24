@@ -8,6 +8,8 @@ import logging
 import warnings
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from .utils import load_lm
+
 class Tree:
     def __init__(
         self,
@@ -69,8 +71,8 @@ class Tree:
             self.feature_names = np.array(self.feature_names).flatten()
 
         # set up arguments
-        model = AutoModelForCausalLM.from_pretrained(self.checkpoint)
         tokenizer = AutoTokenizer.from_pretrained(self.checkpoint)
+        model = load_lm(checkpoint=self.checkpoint, tokenizer=tokenizer)
         stump_kwargs = dict(
             args=self.args,
             tokenizer=tokenizer,

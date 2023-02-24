@@ -14,8 +14,6 @@ import torch.cuda
 import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from .utils import load_lm
-
 class Stump(ABC):
     def __init__(
         self,
@@ -65,6 +63,18 @@ class Stump(ABC):
         # tree stuff
         self.child_left = None
         self.child_right = None
+    
+    def __getstate__(self):
+        """Get the stump but prevent certain attributes from being pickled.
+
+        See also https://stackoverflow.com/a/54139237/2287177
+        """
+        state = self.__dict__.copy()
+        # Don't pickle big things
+        if "model" in state: del state["model"]
+        if "tokenizer" in state: del state["tokenizer"]
+        if "feature_names" in state: del state["feature_names"]
+        return state
     
     @abstractmethod
     def fit(self, X_text: List[str], y: List[int], feature_names=None, X=None):
@@ -116,9 +126,10 @@ class PromptStump(Stump):
         if self.split_strategy == 'manual':
             self.prompt = self.args.prompt
         else:
-            self.model = self.model.to('cpu')
+            # self.model = self.model.to('cpu')
             print(f'calling explain_dataset_iprompt with batch size {self.args.batch_size}')
             prompts, metadata = imodelsx.explain_dataset_iprompt(
+                lm=self.model,
                 input_strings=input_strings,
                 output_strings=output_strings,
                 checkpoint=self.checkpoint, # which language model to use
@@ -136,10 +147,10 @@ class PromptStump(Stump):
                 max_n_datapoints=len(input_strings),
                 # on an a6000 gpu with gpt2-xl in fp16 and batch size 32,
                 # 100 steps takes around 30 minutes.
-                max_n_steps=20, # limit search by a fixed number of steps
+                max_n_steps=1000, # limit search by a fixed number of steps
             )
             torch.cuda.empty_cache()
-            self.model = self.model.to(self.device)
+            # self.model = self.model.to(self.device)
 
             # save stuff
             self.prompt = prompts[0]
