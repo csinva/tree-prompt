@@ -1,3 +1,6 @@
+from transformers import AutoTokenizer
+from tprompt.utils import load_lm
+import argparse
 import numpy as np
 import tprompt.stump
 import tprompt.tree
@@ -12,32 +15,31 @@ from joblib import Memory
 import os
 from os.path import dirname, basename, join
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
-from joblib import Memory
-import argparse
 
 PROMPTS_MOVIE_0 = [
-        # ' What is the sentiment expressed by the reviewer for the movie?',
-        # ' Is the movie positive or negative?',
-        ' The movie is',
-        ' Positive or Negative? The movie was',
-        ' The sentiment of the movie was',
-        ' The plot of the movie was really',
-        ' The acting in the movie was',
-        ' I felt the scenery was',
-        ' The climax of the movie was',
-        ' Overall I felt the acting was',
-        ' I thought the visuals were generally',
-        ' How does the viewer feel about the movie?',
-        ' What sentiment does the writer express for the movie?',
-        ' Did the reviewer enjoy the movie?',
-        ' The cinematography of the film was',
-        ' The casting of the film was',
-        ' I thought the soundtrack of the movie was',
-        ' I thought the originality of the movie was',
-        ' I thought the action of the movie was',
-        ' I thought the pacing of the movie was',
-        ' I thought the length of the movie was',
+    # ' What is the sentiment expressed by the reviewer for the movie?',
+    # ' Is the movie positive or negative?',
+    ' The movie is',
+    ' Positive or Negative? The movie was',
+    ' The sentiment of the movie was',
+    ' The plot of the movie was really',
+    ' The acting in the movie was',
+    ' I felt the scenery was',
+    ' The climax of the movie was',
+    ' Overall I felt the acting was',
+    ' I thought the visuals were generally',
+    ' How does the viewer feel about the movie?',
+    ' What sentiment does the writer express for the movie?',
+    ' Did the reviewer enjoy the movie?',
+    ' The cinematography of the film was',
+    ' The casting of the film was',
+    ' I thought the soundtrack of the movie was',
+    ' I thought the originality of the movie was',
+    ' I thought the action of the movie was',
+    ' I thought the pacing of the movie was',
+    ' I thought the length of the movie was',
 ]
+
 
 def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
     assert args.prompt_source in ['manual', 'data_demonstrations']
@@ -46,10 +48,12 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
         return PROMPTS_MOVIE_0
     elif args.prompt_source == 'data_demonstrations':
         template = args.template_data_demonstrations
-        unique_ys = sorted(list(set(y_train)), key=lambda x: -x) # 1, 0 since positive usually comes first
+        # 1, 0 since positive usually comes first
+        unique_ys = sorted(list(set(y_train)), key=lambda x: -x)
         examples_by_y = {}
         for y in unique_ys:
-            examples_by_y[y] = sorted(list(filter(lambda ex: ex[1]==y, zip(X_train_text, y_train))))
+            examples_by_y[y] = sorted(
+                list(filter(lambda ex: ex[1] == y, zip(X_train_text, y_train))))
         prompts = []
         while len(prompts) < args.num_prompts:
             prompt = ''
@@ -63,17 +67,21 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1234):
 
 
 def engineer_prompt_features(
-        args, X_train_text, X_test_text, y_train, y_test, 
-        cache_dir = join(path_to_repo, 'results', 'cache_features'),
-        arg_names_cache = ['checkpoint', 'verbalizer_num', 'prompt_source', 'template_data_demonstrations'],
-    ):
+    args, X_train_text, X_test_text, y_train, y_test,
+    cache_dir=join(path_to_repo, 'results', 'cache_features'),
+    arg_names_cache=['checkpoint', 'verbalizer_num',
+                     'prompt_source', 'template_data_demonstrations'],
+):
     logging.info('calculating prompt features with ' + args.checkpoint)
     args.prompt = 'Placeholder'
-    
+
     # uses args.verbalizer
+    tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
+    model = load_lm(checkpoint=args.checkpoint, tokenizer=tokenizer).to('cuda')
     m = tprompt.stump.PromptStump(
         args=args,
-        split_strategy='manual', # 'manual' specifies that we use args.prompt
+        split_strategy='manual',  # 'manual' specifies that we use args.prompt
+        model=model,
         checkpoint=args.checkpoint,
     )
 
@@ -86,22 +94,23 @@ def engineer_prompt_features(
     # compute features for prompts
     for i, p in enumerate(tqdm(prompts)):
         m.prompt = p
-        
+
         def _calc_features_single_prompt(
-                args, X_train_text, X_test_text, y_train, y_test, m, p
-            ):
+            args, X_train_text, X_test_text, y_train, y_test, m, p
+        ):
             logging.info('prompt ' + p)
             acc_baseline = max(y_train.mean(), 1 - y_train.mean())
             preds_train = m.predict(X_train_text)
             acc_train = np.mean(preds_train == y_train)
-            logging.info(f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
+            logging.info(
+                f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
 
             preds_test = m.predict(X_test_text)
             acc_test = np.mean(preds_test == y_test)
             logging.info(f'\tacc_test {acc_test:0.3f}')
 
             return preds_train, preds_test, acc_train
-        
+
         compute_func = _calc_features_single_prompt
         if cache_dir is not None:
             os.makedirs(cache_dir, exist_ok=True)
@@ -112,7 +121,8 @@ def engineer_prompt_features(
             **{k: v for k, v in args._get_kwargs() if k in arg_names_cache}
         )
         preds_train, preds_test, acc_train = \
-            compute_func(args_cache, X_train_text, X_test_text, y_train, y_test, m, p)
+            compute_func(args_cache, X_train_text,
+                         X_test_text, y_train, y_test, m, p)
 
         prompt_features_train[:, i] = preds_train
         prompt_features_test[:, i] = preds_test

@@ -9,6 +9,8 @@ import sklearn.tree
 import tprompt.prompts
 from transformers import AutoModelForCausalLM
 import logging
+from tprompt.utils import load_lm
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 def seed_and_get_tiny_data(seed=1, subsample_frac=0.05):
     np.random.seed(seed)
@@ -28,6 +30,7 @@ def test_stump_improves_acc(split_strategy='iprompt'):
     class args:
         dataset_name = 'rotten_tomatoes'
         verbose = True
+        prompt_source = 'manual'
     m = stump_cls(
         args=args(),
         split_strategy=split_strategy,
@@ -64,12 +67,16 @@ def test_stump_manual():
             0: ' Negative.',
             1: ' Positive.',
         }
+        prompt_source = 'manual'
         batch_size = 32
-        
+    
+    checkpoint = 'gpt2'
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+    model = load_lm(checkpoint=checkpoint, tokenizer=tokenizer)
     m = tprompt.stump.PromptStump(
         args=args(),
         split_strategy='manual', # 'manual' specifies that we use args.prompt
-        checkpoint='gpt2', # EleutherAI/gpt-j-6B
+        model=model,
         assert_checks=True,
     )
 

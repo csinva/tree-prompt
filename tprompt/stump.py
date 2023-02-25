@@ -110,7 +110,6 @@ class PromptStump(Stump):
         super(PromptStump, self).__init__(*args, **kwargs)
         if self.verbose:
             logging.info(f'Loading model {self.checkpoint}')
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     def fit(self, X_text: List[str], y, feature_names=None, X=None):
         # check input and set some attributes

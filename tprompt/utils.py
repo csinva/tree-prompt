@@ -20,7 +20,7 @@ def load_lm(
             revision="float16", 
             torch_dtype=torch.float16, 
         )
-    elif checkpoint.startswith('gpt2'):
+    elif checkpoint.startswith('gpt2') and not checkpoint == 'gpt2':
         print(f"loading gpt model in fp16 from checkpoint {checkpoint}")
         lm = transformers.AutoModelForCausalLM.from_pretrained(
             **kwargs,

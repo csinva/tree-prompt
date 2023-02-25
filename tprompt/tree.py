@@ -9,7 +9,7 @@ import warnings
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from .utils import load_lm
+from tprompt.utils import load_lm
 
 class Tree:
     def __init__(
@@ -74,11 +74,10 @@ class Tree:
             self.feature_names = np.array(self.feature_names).flatten()
 
         # set up arguments
-        tokenizer = AutoTokenizer.from_pretrained(self.checkpoint)
-        model = load_lm(checkpoint=self.checkpoint, tokenizer=tokenizer)
+        model = load_lm(checkpoint=self.checkpoint, tokenizer=self.tokenizer)
         stump_kwargs = dict(
             args=self.args,
-            tokenizer=tokenizer,
+            tokenizer=self.tokenizer,
             split_strategy=self.split_strategy,
             assert_checks=self.assert_checks,
             verbose=self.verbose,

@@ -19,7 +19,7 @@ params_shared_dict = {
     # 'dataset_name': ['rotten_tomatoes'], #, 'financial_phrasebank', 'emotion', 'sst2'],
     # 'dataset_name': ['imdb'],
     'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
-    'verbalizer_num': [1], # [0, 1],
+    'verbalizer_num': [0, 1], # [0, 1],
     'checkpoint': ['gpt2-xl'], # gpt2? gpt2-xl?
 }
 
@@ -73,9 +73,9 @@ submit_utils.run_args_list(
     actually_run=True,
     # gpu_ids = get_gpu_ids(),
     
-    # gpu_ids = [0, 1, 2, 3],
-    # shuffle=True,
+    gpu_ids = [0, 1, 2, 3],
+    shuffle=True,
 
-    gpu_ids = [0],
-    shuffle=False,
+    # gpu_ids = [0],
+    # shuffle=False,
 )
