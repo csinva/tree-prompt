@@ -14,18 +14,19 @@ import torch.cuda
 import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
+
 class Stump(ABC):
     def __init__(
         self,
         args,
-        split_strategy: str='iprompt',
+        split_strategy: str = 'iprompt',
         tokenizer=None,
         max_features=10,
-        assert_checks: bool=False,
-        verbose: bool=True,
-        model: AutoModelForCausalLM=None,
-        checkpoint: str='EleutherAI/gpt-j-6B',
-        checkpoint_prompting: str='EleutherAI/gpt-j-6B',
+        assert_checks: bool = False,
+        verbose: bool = True,
+        model: AutoModelForCausalLM = None,
+        checkpoint: str = 'EleutherAI/gpt-j-6B',
+        checkpoint_prompting: str = 'EleutherAI/gpt-j-6B',
     ):
         """Fit a single stump.
         Can use tabular features...
@@ -51,19 +52,19 @@ class Stump(ABC):
         self.split_strategy = split_strategy
         self.assert_checks = assert_checks
         self.verbose = verbose
-        self.max_features = max_features 
+        self.max_features = max_features
         self.checkpoint = checkpoint
         self.checkpoint_prompting = checkpoint_prompting
         self.model = model
         if tokenizer is None:
-            self.tokenizer = imodelsx.util.get_spacy_tokenizer(convert_output=False)
+            self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
         else:
             self.tokenizer = tokenizer
 
         # tree stuff
         self.child_left = None
         self.child_right = None
-    
+
     def __getstate__(self):
         """Get the stump but prevent certain attributes from being pickled.
 
@@ -71,11 +72,14 @@ class Stump(ABC):
         """
         state = self.__dict__.copy()
         # Don't pickle big things
-        if "model" in state: del state["model"]
-        if "tokenizer" in state: del state["tokenizer"]
-        if "feature_names" in state: del state["feature_names"]
+        if "model" in state:
+            del state["model"]
+        if "tokenizer" in state:
+            del state["tokenizer"]
+        if "feature_names" in state:
+            del state["feature_names"]
         return state
-    
+
     @abstractmethod
     def fit(self, X_text: List[str], y: List[int], feature_names=None, X=None):
         return self
@@ -127,27 +131,29 @@ class PromptStump(Stump):
             self.prompt = self.args.prompt
         else:
             # self.model = self.model.to('cpu')
-            print(f'calling explain_dataset_iprompt with batch size {self.args.batch_size}')
+            print(
+                f'calling explain_dataset_iprompt with batch size {self.args.batch_size}')
             prompts, metadata = imodelsx.explain_dataset_iprompt(
                 lm=self.model,
                 input_strings=input_strings,
                 output_strings=output_strings,
-                checkpoint=self.checkpoint, # which language model to use
-                num_learned_tokens=12, # how long of a prompt to learn
-                n_shots=1, # number of examples in context
-                n_epochs=5, # how many epochs to search
-                batch_size=self.args.batch_size, # batch size for iprompt
-                llm_float16=False, # whether to load the model in float_16
-                verbose=1, # how much to print
-                prefix_before_input=False, # sets template like ${input}${prefix}
-                mask_possible_answers=True, # only compute loss over valid output tokens
+                checkpoint=self.checkpoint,  # which language model to use
+                num_learned_tokens=12,  # how long of a prompt to learn
+                n_shots=1,  # number of examples in context
+                n_epochs=5,  # how many epochs to search
+                batch_size=self.args.batch_size,  # batch size for iprompt
+                llm_float16=False,  # whether to load the model in float_16
+                verbose=1,  # how much to print
+                # sets template like ${input}${prefix}
+                prefix_before_input=False,
+                mask_possible_answers=True,  # only compute loss over valid output tokens
                 generation_repetition_penalty=1.0,
                 pop_topk_strategy='different_start_token',
                 pop_criterion='acc',
                 max_n_datapoints=len(input_strings),
                 # on an a6000 gpu with gpt2-xl in fp16 and batch size 32,
                 # 100 steps takes around 30 minutes.
-                max_n_steps=1000, # limit search by a fixed number of steps
+                max_n_steps=1000,  # limit search by a fixed number of steps
             )
             torch.cuda.empty_cache()
             # self.model = self.model.to(self.device)
@@ -160,7 +166,7 @@ class PromptStump(Stump):
 
         # set value (calls self.predict)
         self._set_value_acc_samples(X_text, y)
-        
+
         return self
 
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
@@ -169,13 +175,13 @@ class PromptStump(Stump):
 
     def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
         target_strs = list(self._get_verbalizer().values())
-        
+
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
         if self.args.prompt_source == 'data_demonstrations':
             template = self.args.template_data_demonstrations
             preds = self._get_logit_for_target_tokens_batched(
-                [self.prompt + template%(x, '') for x in X_text],
+                [self.prompt + template % (x, '') for x in X_text],
                 target_token_ids,
                 batch_size=self.args.batch_size
             )
@@ -189,14 +195,16 @@ class PromptStump(Stump):
         # for i, x in enumerate(X_text):
         #     preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)
         #     preds[i] = self._get_logit_for_target_tokens(x + self.prompt, target_token_ids)
-        assert preds.shape == (len(X_text), len(target_token_ids)), 'preds shape was' + str(preds.shape) + ' but should have been ' + str((len(X_text), len(target_token_ids)))
+        assert preds.shape == (len(X_text), len(target_token_ids)), 'preds shape was' + str(
+            preds.shape) + ' but should have been ' + str((len(X_text), len(target_token_ids)))
 
         # return the class with the highest logit
         return softmax(preds, axis=1)
-    
-    def _get_logit_for_target_tokens_batched(self, prompts: List[str],
+
+    def _get_logit_for_target_tokens_batched(self,
+                                             prompts: List[str],
                                              target_token_ids: List[int],
-                                             batch_size: int=64) -> np.ndarray[float]:
+                                             batch_size: int = 64) -> np.ndarray[float]:
         """Get logits for each target token
         This can fail when token_output_ids represents multiple tokens
         So things get mapped to the same id representing "unknown"
@@ -229,12 +237,14 @@ class PromptStump(Stump):
                 .to(self.model.device)
             )
 
-            logits = self.model(**inputs)['logits'].detach()  # shape is (batch_size, seq_len, vocab_size)
+            # shape is (batch_size, seq_len, vocab_size)
+            logits = self.model(**inputs)['logits'].detach()
             token_output_positions = inputs['attention_mask'].sum(axis=1)
             for i in range(len(prompts_batch)):
                 token_output_position = token_output_positions[i].item() - 1
-                logit_targets_list.append([logits[i, token_output_position, token_output_id].item() for token_output_id in target_token_ids])
-            
+                logit_targets_list.append([logits[i, token_output_position, token_output_id].item(
+                ) for token_output_id in target_token_ids])
+
     # def _get_logit_for_target_tokens(self, prompt: str, target_token_ids: List[int]) -> np.ndarray[float]:
     #     """Get logits for each target token
     #     This can fail when token_output_ids represents multiple tokens
@@ -254,12 +264,10 @@ class PromptStump(Stump):
         if hasattr(self.args, 'verbalizer') and self.args.verbalizer is not None:
             return self.args.verbalizer
         else:
-            return {0: ' Negative.', 1: ' Positive.'}   
-    
+            return {0: ' Negative.', 1: ' Positive.'}
+
     def __str__(self):
         return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'
-    
-
 
     def get_str_simple(self):
         return self.prompt
@@ -302,13 +310,12 @@ class KeywordStump(Stump):
 
         return self
 
-
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
         """Returns prediction 1 for positive and 0 for negative.
         """
         keywords = self.stump_keywords
         ngrams_used_to_predict = max(
-                [len(keyword.split(' ')) for keyword in keywords])
+            [len(keyword.split(' ')) for keyword in keywords])
 
         def contains_any_of_keywords(text):
             text = text.lower()
@@ -361,7 +368,7 @@ class KeywordStump(Stump):
         '''Find the top self.max_features features selected by CART
         '''
         criterion_func = imodelsx.metrics.gini_binary
-        
+
         # Calculate the gini impurity reduction for each (binary) feature in X
         impurity_reductions = []
 

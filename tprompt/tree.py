@@ -52,8 +52,7 @@ class Tree:
         self.checkpoint_prompting = checkpoint_prompting
         self.device = device
         if tokenizer is None:
-            self.tokenizer = imodelsx.util.get_spacy_tokenizer(
-                convert_output=False)
+            self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
         else:
             self.tokenizer = tokenizer
         self.prompts_list = []
