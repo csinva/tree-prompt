@@ -19,7 +19,7 @@ params_shared_dict = {
     # 'dataset_name': ['rotten_tomatoes'], #, 'financial_phrasebank', 'emotion', 'sst2'],
     # 'dataset_name': ['imdb'],
     'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
-    'verbalizer_num': [0, 1], # [0, 1],
+    'verbalizer_num': [0], # [0, 1],
     'checkpoint': ['gpt2-xl'], # gpt2? gpt2-xl?
 }
 
