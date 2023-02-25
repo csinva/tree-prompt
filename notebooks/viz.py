@@ -44,6 +44,7 @@ MODELS_RENAME_DICT = {
     'manual_tree': 'TreePrompt',
     'manual_ensemble': 'Ensemble (best-first)',
     'manual_boosting': 'Ensemble (boosting)',
+    'manual_gbdt': 'TreePrompt (GBDT)'
 }
 
 XLAB = {

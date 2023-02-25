@@ -8,7 +8,7 @@ import logging
 import warnings
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
+import warnings
 from tprompt.utils import load_lm
 
 class Tree:
@@ -103,7 +103,11 @@ class Tree:
         self.root_ = stump
 
         # recursively fit stumps and store as a decision tree
-        stumps_queue = [stump]
+        if stump.failed_to_split:
+            stumps_queue = []
+            warnings.warn('Failed to split on root stump!')
+        else:
+            stumps_queue = [stump]
         i = 0
         depth = 1
         while depth < self.max_depth:
