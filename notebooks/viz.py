@@ -69,7 +69,7 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
                 kwargs = {'lw': 1.5, 'alpha': 0.9, 'ls': '-', 'marker': '.', 'color': 'black'}
             else:
                 kwargs = {'alpha': 0.5, 'lw': 1, 'ls': '--', 'marker': '.'}
-
+            # print(g[x])
             plt.plot(g[x], g['roc_auc_test'], label=MODELS_RENAME_DICT.get(k, k), **kwargs)
         plt.title(DSETS_RENAME_DICT.get(dset_name, dset_name), fontsize='medium')
         plt.xlabel(XLAB.get(x, x))

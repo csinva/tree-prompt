@@ -20,7 +20,7 @@ params_shared_dict = {
     # 'dataset_name': ['imdb'],
     'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
     'verbalizer_num': [0], # [0, 1],
-    'checkpoint': ['gpt2-xl'], # gpt2? gpt2-xl?
+    'checkpoint': ['gpt2'], # gpt2? gpt2-xl?
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -29,13 +29,13 @@ params_coupled_dict = {
         (model_name, 4, num_prompts, prompt_source)
         for num_prompts in [1, 3, 5, 7, 10]
         for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-        for prompt_source in ['manual', 'data_demonstrations']
+        for prompt_source in ['manual'] #, 'data_demonstrations']
     ],
-    ('model_name', 'batch_size', 'prompt_source'): [
-        (model_name, 4, prompt_source)
-        for model_name in ['manual_gbdt']
-        for prompt_source in ['manual', 'data_demonstrations']
-    ],
+    # ('model_name', 'batch_size', 'prompt_source'): [
+    #     (model_name, 4, prompt_source)
+    #     for model_name in ['manual_gbdt']
+    #     for prompt_source in ['manual', 'data_demonstrations']
+    # ],
     
     # ('model_name', 'split_strategy', 'max_depth',): [
     #     ('tprompt', 'iprompt', max_depth)
