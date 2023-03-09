@@ -19,6 +19,8 @@ import numpy as np
 import imodelsx.viz
 import pandas as pd
 from dtreeviz.models.sklearn_decision_trees import ShadowSKDTree
+from matplotlib.backends.backend_pdf import PdfPages
+
 
 from os.path import join, dirname
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
@@ -192,3 +194,11 @@ if __name__ == '__main__':
     # )
 
     print('succesfully saved!')
+
+def save_figs_to_single_pdf(filename):
+    p = PdfPages(filename)
+    fig_nums = plt.get_fignums()  
+    figs = [plt.figure(n) for n in fig_nums]
+    for fig in figs: 
+        fig.savefig(p, format='pdf') 
+    p.close()  

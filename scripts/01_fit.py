@@ -29,7 +29,8 @@ params_coupled_dict = {
         (model_name, 4, num_prompts, prompt_source)
         for num_prompts in [1, 3, 5, 7, 10]
         for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-        for prompt_source in ['manual'] #, 'data_demonstrations']
+        # for prompt_source in ['manual'] #, 'data_demonstrations']
+        for prompt_source in ['data_demonstrations'] #, 'data_demonstrations']
     ],
     # ('model_name', 'batch_size', 'prompt_source'): [
     #     (model_name, 4, prompt_source)
