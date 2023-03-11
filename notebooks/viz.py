@@ -59,9 +59,13 @@ XLAB = {
 def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf'):
     dset_names = rp['dataset_name'].unique()
     R, C = 1, min(3, len(dset_names))
-    fig = plt.figure(figsize=(C * 2.5, R * 2.5))
+    fig, axes = plt.subplots(figsize=(C * 2.5, R * 2.5), nrows=R, ncols=C, layout='constrained')
     for i in range(R * C):
-        plt.subplot(R, C, i + 1)
+        # plt.subplot(R, C, i + 1)
+        if R * C > 1:
+            ax = axes[i]
+        else:
+            ax = axes
         dset_name = dset_names[i]
         rd = rp[rp.dataset_name == dset_name]
         groupings = 'model_name'
@@ -72,18 +76,22 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
             else:
                 kwargs = {'alpha': 0.5, 'lw': 1, 'ls': '--', 'marker': '.'}
             # print(g[x])
-            plt.plot(g[x], g['roc_auc_test'], label=MODELS_RENAME_DICT.get(k, k), **kwargs)
-        plt.title(DSETS_RENAME_DICT.get(dset_name, dset_name), fontsize='medium')
-        plt.xlabel(XLAB.get(x, x))
-        plt.ylabel('ROC AUC')
-    plt.legend(
+            if i == R * C - 1:
+                kwargs['label'] = MODELS_RENAME_DICT.get(k, k)
+            ax.plot(g[x], g['roc_auc_test'], **kwargs)
+        ax.set_title(DSETS_RENAME_DICT.get(dset_name, dset_name), fontsize='medium')
+        ax.set_xlabel(XLAB.get(x, x))
+        ax.set_ylabel('ROC AUC')
+    fig.legend(
         title_fontsize='xx-small',
         labelcolor='linecolor',
         # bbox_to_anchor=(1.2, 1.1),
-        fontsize='x-small'
+        fontsize='xx-small',
+        loc='outside right',
     )
-    plt.tight_layout()
-    fig.subplots_adjust(right=0.85)
+    # plt.tight_layout()
+    # fig.tight_layout()
+    # fig.subplots_adjust(right=0.75)
     os.makedirs(os.path.dirname(fname_save), exist_ok=True)
     plt.savefig(fname_save, bbox_inches='tight')
     # plt.show()
@@ -200,5 +208,5 @@ def save_figs_to_single_pdf(filename):
     fig_nums = plt.get_fignums()  
     figs = [plt.figure(n) for n in fig_nums]
     for fig in figs: 
-        fig.savefig(p, format='pdf') 
+        fig.savefig(p, format='pdf', bbox_inches='tight') 
     p.close()  
