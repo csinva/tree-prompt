@@ -15,7 +15,7 @@ params_shared_dict = {
     'seed': [1],
     # 'save_dir': [join(save_dir, 'tree-prompt', 'feb25')],
     'save_dir': [join(save_dir, 'tree-prompt', 'mar17')],
-    'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
+    # 'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     'dataset_name': ['rotten_tomatoes', 'sst2'], #, 'imdb'],
     'verbalizer_num': [1], # [0, 1],
 }
@@ -28,7 +28,7 @@ params_coupled_dict = {
         for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
         for prompt_source in ['manual', 'data_demonstrations']
         for (checkpoint, batch_size) in [
-            ('gpt2', 32),
+            ('gpt2', 16),
             # ('EleutherAI/gpt-j-6B', 4),
         ]
     ],
@@ -39,7 +39,7 @@ params_coupled_dict = {
         for model_name in ['manual_gbdt']
         for prompt_source in ['manual', 'data_demonstrations']
         for (checkpoint, batch_size) in [
-            ('gpt2', 32),
+            ('gpt2', 16),
             # ('EleutherAI/gpt-j-6B', 4),
         ]
     ],
