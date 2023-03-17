@@ -86,8 +86,8 @@ def add_main_args(parser):
     # dataset args
     parser.add_argument('--dataset_name', type=str,
                         default='rotten_tomatoes', help='name of dataset')
-    parser.add_argument('--subsample_frac', type=float,
-                        default=1, help='fraction of samples to use')
+    # parser.add_argument('--subsample_frac', type=float,
+                        # default=1, help='fraction of samples to use')
 
     # training misc args
     parser.add_argument('--seed', type=int, default=1,
@@ -125,7 +125,7 @@ def add_main_args(parser):
 
 
 def add_computational_args(parser):
-    """Arguments that only affect computation and not the results (shouldnt use when checking cache)
+    """Arguments that only affect computation and not the results (shouldn't use when checking cache)
     """
     parser.add_argument('--use_cache', type=int, default=1, choices=[0, 1],
                         help='whether to check for cache')
@@ -133,6 +133,8 @@ def add_computational_args(parser):
                         help='whether to print verbosely')
     parser.add_argument('--batch_size', type=int, default=128,
                         help='batch size for manual_tree feature extraction')
+    parser.add_argument('--cache_prompt_features_dir', type=str, default='/home/chansingh/mntv1/tree-prompt/cache_prompt_features',
+                        help='which directory to cache prompt features into')
     return parser
 
 
@@ -167,10 +169,13 @@ if __name__ == '__main__':
 
     # load text data
     X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
-        dataset_name=args.dataset_name, subsample_frac=args.subsample_frac,
-        return_lists=True, binary_classification=True,
+        dataset_name=args.dataset_name,
+        # subsample_frac=args.subsample_frac,
+        return_lists=True,
+        binary_classification=True,
     )
-    # get converted tabular data too just in case
+
+    # get converted tabular data
     X_train, X_test, feature_names = \
         tprompt.data.convert_text_data_to_counts_array(
             X_train_text, X_test_text, ngrams=2)
@@ -178,6 +183,8 @@ if __name__ == '__main__':
         X_train, X_test, feature_names = \
             tprompt.prompts.engineer_prompt_features(
                 args, X_train_text, X_test_text, y_train, y_test)
+        
+    # split (could subsample here too)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
     args.verbalizer = get_verbalizer(args)

@@ -13,15 +13,16 @@ save_dir = '/home/chansingh/mntv1'
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    'save_dir': [join(save_dir, 'tree-prompt', 'feb25')],
+    # 'save_dir': [join(save_dir, 'tree-prompt', 'feb25')],
+    'save_dir': [join(save_dir, 'tree-prompt', 'mar17')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     # 'dataset_name': ['rotten_tomatoes', 'financial_phrasebank', 'emotion', 'sst2'],
     # 'dataset_name': ['rotten_tomatoes'], #, 'financial_phrasebank', 'emotion', 'sst2'],
     # 'dataset_name': ['imdb'],
     'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
-    'verbalizer_num': [0], # [0, 1],
-    # 'checkpoint': ['gpt2'], # gpt2? gpt2-xl?
-    'checkpoint': ['EleutherAI/gpt-j-6B'], # gpt2? gpt2-xl?
+    'verbalizer_num': [1], # [0, 1],
+    'checkpoint': ['gpt2'], # gpt2? gpt2-xl?
+    # 'checkpoint': ['EleutherAI/gpt-j-6B'], # gpt2? gpt2-xl?
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -30,7 +31,7 @@ params_coupled_dict = {
         (model_name, 1, num_prompts, prompt_source)
         for num_prompts in [1, 3, 5, 7, 10]
         for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-        for prompt_source in ['manual'] #, 'data_demonstrations']
+        for prompt_source in ['manual', 'data_demonstrations']
         # for prompt_source in ['data_demonstrations'] #, 'data_demonstrations']
     ],
     # ('model_name', 'batch_size', 'prompt_source'): [
@@ -72,10 +73,10 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
     # gpu_ids = get_gpu_ids(),
-    
-    # gpu_ids = [0, 1, 2, 3],
-    gpu_ids=[0, 1],
-    shuffle=True,
+    # n_cpus=4,
+    gpu_ids = [0, 1, 2, 3],
+    # gpu_ids=[0, 1, 2, 3],
+    # shuffle=False,
 
     # gpu_ids = [0],
     # shuffle=False,
