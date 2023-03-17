@@ -16,7 +16,7 @@ params_shared_dict = {
     # 'save_dir': [join(save_dir, 'tree-prompt', 'feb25')],
     'save_dir': [join(save_dir, 'tree-prompt', 'mar17')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
-    'dataset_name': ['rotten_tomatoes', 'sst2', 'imdb'],
+    'dataset_name': ['rotten_tomatoes', 'sst2'], #, 'imdb'],
     'verbalizer_num': [1], # [0, 1],
 }
 
@@ -24,19 +24,25 @@ params_shared_dict = {
 params_coupled_dict = {
     ('model_name', 'checkpoint', 'batch_size', 'num_prompts', 'prompt_source'): [
         (model_name, checkpoint, batch_size, num_prompts, prompt_source)
-        for num_prompts in [1, 3, 5, 7, 10, 15]
-        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting', 'manual_gbdt']
+        for num_prompts in [1, 3, 5, 7, 10, 15, 25]
+        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
         for prompt_source in ['manual', 'data_demonstrations']
         for (checkpoint, batch_size) in [
-            ('gpt2', 64),
+            ('gpt2', 32),
             # ('EleutherAI/gpt-j-6B', 4),
         ]
     ],
-    # ('model_name', 'batch_size', 'prompt_source'): [
-    #     (model_name, 4, prompt_source)
-    #     for model_name in ['manual_gbdt']
-    #     for prompt_source in ['manual', 'data_demonstrations']
-    # ],
+
+    # manual_gbdt doesn't vary with num prompts (add use_cache so args aren't replicated)
+    ('model_name', 'checkpoint', 'batch_size', 'num_prompts', 'prompt_source', 'use_cache', ): [
+        (model_name, checkpoint, batch_size, 25, prompt_source, 1)
+        for model_name in ['manual_gbdt']
+        for prompt_source in ['manual', 'data_demonstrations']
+        for (checkpoint, batch_size) in [
+            ('gpt2', 32),
+            # ('EleutherAI/gpt-j-6B', 4),
+        ]
+    ],
     
     # ('model_name', 'split_strategy', 'max_depth',): [
     #     ('tprompt', 'iprompt', max_depth)
@@ -70,6 +76,7 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
+    # n_cpus=16,
     # gpu_ids = get_gpu_ids(),
     # n_cpus=4,
     gpu_ids = [0, 1, 2, 3],

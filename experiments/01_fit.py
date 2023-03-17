@@ -120,7 +120,8 @@ def add_main_args(parser):
                         would use example demonstrations from training set.''')
     parser.add_argument('--template_data_demonstrations', type=str,
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
-
+    parser.add_argument('--truncate_example_length', type=int, default=3000,
+                        help='Max length of characters for each input')
     return parser
 
 
@@ -174,6 +175,9 @@ if __name__ == '__main__':
         return_lists=True,
         binary_classification=True,
     )
+    if args.truncate_example_length > 0:
+        X_train_text = [x[:args.truncate_example_length] for x in X_train_text]
+        X_test_text = [x[:args.truncate_example_length] for x in X_train_text]
 
     # get converted tabular data
     X_train, X_test, feature_names = \
