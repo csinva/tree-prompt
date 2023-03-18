@@ -40,7 +40,7 @@ params_coupled_dict = {
         ]
 
         for (checkpoint, batch_size) in [
-            ('gpt2', 4),
+            ('gpt2', 32),
             # ('EleutherAI/gpt-j-6B', 4),
         ]
     ],

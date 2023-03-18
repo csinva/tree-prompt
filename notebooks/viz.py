@@ -63,7 +63,7 @@ COLORS = {
     'manual_gbdt': 'black',
 }
 
-def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf'):
+def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf', xlim=None):
     dset_names = rp['dataset_name'].unique()
     R, C = 1, min(3, len(dset_names))
     fig, axes = plt.subplots(figsize=(C * 2.5, R * 2.5), nrows=R, ncols=C, layout='constrained')
@@ -96,6 +96,8 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
         ax.set_title(DSETS_RENAME_DICT.get(dset_name, dset_name), fontsize='medium')
         ax.set_xlabel(XLAB.get(x, x))
         ax.set_ylabel('ROC AUC')
+        if xlim:
+            ax.set_xlim(0, xlim)
     fig.legend(
         title_fontsize='xx-small',
         labelcolor='linecolor',
