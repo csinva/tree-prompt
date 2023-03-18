@@ -56,6 +56,13 @@ XLAB = {
     'num_prompts': '# prompts',
 }
 
+COLORS = {
+    'manual_tree': 'black',
+    'manual_ensemble': 'C0',
+    'manual_boosting': 'C1',
+    'manual_gbdt': 'black',
+}
+
 def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf'):
     dset_names = rp['dataset_name'].unique()
     R, C = 1, min(3, len(dset_names))
@@ -71,14 +78,21 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
         groupings = 'model_name'
         for (k, g) in rd.groupby(by=groupings):
 
-            if 'llm_tree' in k:
-                kwargs = {'lw': 1.5, 'alpha': 0.9, 'ls': '-', 'marker': '.', 'color': 'black'}
+            if k == 'manual_tree':
+                kwargs = {'lw': 1, 'alpha': 1, 'ls': '-', 'marker': '.'}
+            elif k == 'manual_gbdt':
+                kwargs = {'lw': 1, 'alpha': 0.5, 'ls': '--', 'marker': ''}
             else:
                 kwargs = {'alpha': 0.5, 'lw': 1, 'ls': '--', 'marker': '.'}
+            kwargs['color'] = COLORS.get(k, 'gray')
             # print(g[x])
             if i == R * C - 1:
                 kwargs['label'] = MODELS_RENAME_DICT.get(k, k)
-            ax.plot(g[x], g['roc_auc_test'], **kwargs)
+            if k == 'manual_gbdt':
+                # horizontal line
+                ax.axhline(g['roc_auc_test'].mean(), **kwargs)
+            else:
+                ax.plot(g[x], g['roc_auc_test'], **kwargs)
         ax.set_title(DSETS_RENAME_DICT.get(dset_name, dset_name), fontsize='medium')
         ax.set_xlabel(XLAB.get(x, x))
         ax.set_ylabel('ROC AUC')

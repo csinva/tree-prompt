@@ -17,29 +17,30 @@ params_shared_dict = {
     'save_dir': [join(save_dir, 'tree-prompt', 'mar17')],
     # 'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     'dataset_name': ['rotten_tomatoes', 'sst2'], #, 'imdb'],
-    'verbalizer_num': [1], # [0, 1],
+    # 'verbalizer_num': [0], # [0, 1],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
-    ('model_name', 'checkpoint', 'batch_size', 'num_prompts', 'prompt_source'): [
-        (model_name, checkpoint, batch_size, num_prompts, prompt_source)
-        for num_prompts in [1, 3, 5, 7, 10, 15, 25]
-        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-        for prompt_source in ['manual', 'data_demonstrations']
-        for (checkpoint, batch_size) in [
-            ('gpt2', 16),
-            # ('EleutherAI/gpt-j-6B', 4),
-        ]
-    ],
+    ('model_name', 'checkpoint', 'batch_size', 'num_prompts', 'prompt_source', 'verbalizer_num'): [
+        (model_name, checkpoint, batch_size, num_prompts, prompt_source, verbalizer_num)
 
-    # manual_gbdt doesn't vary with num prompts (add use_cache so args aren't replicated)
-    ('model_name', 'checkpoint', 'batch_size', 'num_prompts', 'prompt_source', 'use_cache', ): [
-        (model_name, checkpoint, batch_size, 25, prompt_source, 1)
-        for model_name in ['manual_gbdt']
-        for prompt_source in ['manual', 'data_demonstrations']
+
+        for (model_name, num_prompts) in [
+            (mod_name, num_prompt)
+            for mod_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
+            for num_prompt in [1, 3, 5, 7, 10, 15, 25, 40]
+        ] + [('manual_gbdt', 40)]
+        
+    
+        for (prompt_source, verbalizer_num) in [
+            ('manual', 1),
+            ('data_demonstrations', 0),
+            ('data_demonstrations', 1)
+        ]
+
         for (checkpoint, batch_size) in [
-            ('gpt2', 16),
+            ('gpt2', 4),
             # ('EleutherAI/gpt-j-6B', 4),
         ]
     ],
@@ -79,7 +80,7 @@ submit_utils.run_args_list(
     # n_cpus=16,
     # gpu_ids = get_gpu_ids(),
     # n_cpus=4,
-    # gpu_ids = [0, 1, 2, 3],
+    gpu_ids = [0, 1, 2, 3],
     # gpu_ids=[0, 1, 2, 3],
     # shuffle=False,
 

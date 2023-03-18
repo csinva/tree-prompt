@@ -224,10 +224,16 @@ def engineer_prompt_features(
         save_dir_unique_hash = sha256(args_dict_cache)
         cache_file = join(args.cache_prompt_features_dir, f'{save_dir_unique_hash}.pkl')
 
+        loaded_from_cache = False
         if os.path.exists(cache_file):
-            print('loading from cache!')
-            preds_train, preds_test, acc_train = joblib.load(cache_file)
-        else:
+            # print('loading from cache!')
+            try:
+                preds_train, preds_test, acc_train = joblib.load(cache_file)
+                loaded_from_cache = True
+            except:
+                pass
+        
+        if not loaded_from_cache:
             preds_train, preds_test, acc_train = _calc_features_single_prompt(
                 X_train_text, X_test_text, y_train, y_test, m, p
             )
