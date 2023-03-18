@@ -79,7 +79,7 @@ submit_utils.run_args_list(
     # n_cpus=16,
     # gpu_ids = get_gpu_ids(),
     # n_cpus=4,
-    gpu_ids = [0, 1, 2, 3],
+    # gpu_ids = [0, 1, 2, 3],
     # gpu_ids=[0, 1, 2, 3],
     # shuffle=False,
 

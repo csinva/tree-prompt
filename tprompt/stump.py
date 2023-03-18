@@ -266,7 +266,7 @@ class PromptStump(Stump):
             return {0: ' Negative.', 1: ' Positive.'}
 
     def __str__(self):
-        return f'PromptStump(val={self.value_mean:0.2f} prompt={self.prompt})'
+        return f'PromptStump(val={self.value_mean:0.2f} n={np.sum(self.n_samples)} prompt={self.prompt})'
 
     def get_str_simple(self):
         return self.prompt

@@ -177,7 +177,8 @@ if __name__ == '__main__':
     )
     if args.truncate_example_length > 0:
         X_train_text = [x[:args.truncate_example_length] for x in X_train_text]
-        X_test_text = [x[:args.truncate_example_length] for x in X_train_text]
+        X_test_text = [x[:args.truncate_example_length] for x in X_test_text]
+        print('examples', X_train_text[:30])
 
     # get converted tabular data
     X_train, X_test, feature_names = \
