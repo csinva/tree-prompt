@@ -16,15 +16,26 @@ params_shared_dict = {
     # 'save_dir': [join(save_dir, 'tree-prompt', 'feb25')],
     'save_dir': [join(save_dir, 'tree-prompt', 'mar17')],
     # 'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
-    'dataset_name': ['rotten_tomatoes', 'sst2'], #, 'imdb'],
+    # 'dataset_name': ['rotten_tomatoes', 'sst2'], #, 'imdb'],
     # 'verbalizer_num': [0], # [0, 1],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
-    ('model_name', 'checkpoint', 'batch_size', 'num_prompts', 'prompt_source', 'verbalizer_num'): [
-        (model_name, checkpoint, batch_size, num_prompts, prompt_source, verbalizer_num)
+    ('dataset_name', 'binary_classification', 
+     'model_name', 'checkpoint', 'batch_size', 'num_prompts',
+     'prompt_source', 'verbalizer_num'): [
+        (dataset_name, binary_classification, 
+         model_name, checkpoint, batch_size, num_prompts,
+         prompt_source, verbalizer_num)
 
+        for (dataset_name, binary_classification) in [
+            ('rotten_tomatoes', 0),
+            ('sst2', 0),
+            # ('imdb', 0),
+            ('financial_phrasebank', 0),
+            ('financial_phrasebank', 1),
+        ]
 
         for (model_name, num_prompts) in [
             (mod_name, num_prompt)
@@ -41,7 +52,7 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             ('gpt2', 32),
-            # ('EleutherAI/gpt-j-6B', 16),
+            # ('EleutherAI/gpt-j-6B', 16),  
             # ('EleutherAI/gpt-j-6B', 2),
         ]
     ],

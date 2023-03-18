@@ -18,6 +18,18 @@ from dict_hash import sha256
 from os.path import dirname, basename, join
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
+def get_verbalizer(args):
+    VERB0 = {0: ' Negative.', 1: ' Positive.'}
+    VERB1 = {0: ' No.', 1: ' Yes.', }
+    VERB_LIST_DEFAULT = [VERB0, VERB1]
+    DATA_OUTPUT_STRINGS = {
+        'rotten_tomatoes': [VERB0, VERB1],
+        'sst2': [VERB0, VERB1],
+        'emotion': [VERB0, VERB1],
+        'financial_phrasebank': [VERB0, VERB1],
+    }
+    return DATA_OUTPUT_STRINGS.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
+
 PROMPTS_MOVIE_0 = list(set([
     # ' What is the sentiment expressed by the reviewer for the movie?',
     # ' Is the movie positive or negative?',
@@ -137,13 +149,65 @@ PROMPTS_MOVIE_0 = list(set([
     ' The movie was visually stunning, but lacked substance',
 ]))
 
+PROMPTS_FINANCE_0 = sorted(list(set([
+    ' The financial sentiment of this phrase is',
+    ' The senement of this sentence is',
+    ' The general tone here is',
+    ' I feel the sentiment is',
+    ' The feeling for the economy here was',
+    " Based on this the company's outlook will be",
+    ' Earnings were',
+    ' Long term forecasts are',
+    ' Short-term forecasts are',
+    ' Profits are',
+    ' Revenue was',
+    ' Investments are',
+    ' Financial signals are',
+    ' All indicators look',
+
+    # Chat-GPT-Generated
+    # > Generate more prompts for classifying financial sentences as Positive or Negative given these examples:
+    'Overall, the financial outlook seems to be',
+    'In terms of financial performance, the company has been',
+    'The financial health of the company appears to be',
+    'The market reaction to the latest earnings report has been',
+    "The company's financial statements indicate that",
+    "Investors' sentiment towards the company's stock is",
+    'The financial impact of the recent economic events has been',
+    "The company's financial strategy seems to be",
+    'The financial performance of the industry as a whole has been',
+    'The financial situation of the company seems to be',
+
+    # > Generate nuanced prompts for classifying finfancial sentences as Positive or Negative.
+    'Overall, the assessement of the financial performance of the company is',
+    "The company's earnings exceeded expectations:",
+    "The company's revenue figures were",
+    "The unexpected financial surprises were",
+    "Investments are",
+    "Profits were",
+    'Financial setbacks were',
+    'Investor expectations are',
+    'Financial strategy was',
+
+    # > Generate different prompts for classifying financial sentences, that end with "Positive" or "Negative".
+    'Based on the latest financial report, the overall financial sentiment is likely to be',
+    'The financial health of the company seems to be trending',
+    "The company's earnings for the quarter were",
+    "Investors' sentiment towards the company's stock appears to be",
+    "The company's revenue figures are expected to be",
+    "The company's financial performance is expected to have what impact on the market:",
+    "The latest financial report suggests that the company's financial strategy has been",
+])))
 
 def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
     assert args.prompt_source in ['manual', 'data_demonstrations']
     # random.seed(seed)
     rng = np.random.default_rng(seed=seed)
     if args.prompt_source == 'manual':
-        return PROMPTS_MOVIE_0
+        if args.dataset == ['rotten_tomatoes', 'sst2', 'imdb']:
+            return PROMPTS_MOVIE_0
+        elif args.dataset == ['financial_phrasebank']:
+            return PROMPTS_FINANCE_0
     elif args.prompt_source == 'data_demonstrations':
         template = args.template_data_demonstrations
         # 1, 0 since positive usually comes first

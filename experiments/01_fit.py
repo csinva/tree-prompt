@@ -23,19 +23,6 @@ import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
 
-def get_verbalizer(args):
-    VERB0 = {0: ' Negative.', 1: ' Positive.'}
-    VERB1 = {0: ' No.', 1: ' Yes.', }
-    VERB_LIST_DEFAULT = [VERB0, VERB1]
-    DATA_OUTPUT_STRINGS = {
-        'rotten_tomatoes': [VERB0, VERB1],
-        'sst2': [VERB0, VERB1],
-        'emotion': [VERB0, VERB1],
-        'financial_phrasebank': [VERB0, VERB1],
-    }
-    return DATA_OUTPUT_STRINGS.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
-
-
 def evaluate_model(model, X_train, X_cv, X_test,
                    X_train_text, X_cv_text, X_test_text,
                    y_train, y_cv, y_test, r):
@@ -76,8 +63,6 @@ def evaluate_model(model, X_train, X_cv, X_test,
     return r
 
 # initialize args
-
-
 def add_main_args(parser):
     """Caching uses the non-default values from argparse to name the saving directory.
     Changing the default arg an argument will break cache compatibility with previous runs.
@@ -122,6 +107,7 @@ def add_main_args(parser):
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
     parser.add_argument('--truncate_example_length', type=int, default=3000,
                         help='Max length of characters for each input')
+    parser.add_argument('--binary_classification', type=int, default=0, help='Whether to truncate dataset to binary classification')
     return parser
 
 
@@ -146,6 +132,9 @@ if __name__ == '__main__':
     parser = add_computational_args(
         deepcopy(parser_without_computational_args))
     args = parser.parse_args()
+    if args.binary_classification and args.dataset_name in ['sst2', 'rotten_tomatoes', 'imdb']:
+        print(f'Skipping {args.dataset_name} since binary_classification=1')
+        exit(0)
 
     # set up logging
     logger = logging.getLogger()
@@ -173,7 +162,7 @@ if __name__ == '__main__':
         dataset_name=args.dataset_name,
         # subsample_frac=args.subsample_frac,
         return_lists=True,
-        binary_classification=True,
+        binary_classification=args.binary_classification,
     )
     if args.truncate_example_length > 0:
         X_train_text = [x[:args.truncate_example_length] for x in X_train_text]
@@ -192,7 +181,7 @@ if __name__ == '__main__':
     # split (could subsample here too)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
-    args.verbalizer = get_verbalizer(args)
+    args.verbalizer = tprompt.prompts.get_verbalizer(args)
 
     # load model
     if args.model_name == 'tprompt':
