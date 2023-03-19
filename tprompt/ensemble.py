@@ -27,7 +27,7 @@ class IdentityEnsembleClassifier:
             probas = np.zeros((X.shape[0], self.estimators_[0].n_classes_))
             for i, clf in enumerate(self.estimators_):
                 probas += clf.predict_proba(X[:, i].reshape(-1, 1))
-            probas /= X.shape[1]
+            probas /= len(self.estimators_)
 
         # boosting
         elif hasattr(self, 'estimator_'):

@@ -30,14 +30,18 @@ def evaluate_model(model, X_train, X_cv, X_test,
     """
     metrics = {
         'accuracy': accuracy_score,
-        'precision': partial(precision_score, zero_division=0),
-        'recall': partial(recall_score, zero_division=0),
+        # 'precision': partial(precision_score, zero_division=0),
+        # 'recall': partial(recall_score, zero_division=0),
         'balanced_accuracy': balanced_accuracy_score,
     }
     metrics_proba = {
         'roc_auc': roc_auc_score,
-        'brier_score_loss': brier_score_loss,
+        # 'brier_score_loss': brier_score_loss,
     }
+    metrics_proba_multiclass = {
+        'roc_auc': partial(roc_auc_score, multi_class='ovr'),
+    }
+    multiclass = len(np.unique(y_train)) > 2
     for split_name, (X_text_, X_, y_) in zip(['train', 'cv', 'test'],
                                              [(X_train_text, X_train, y_train),
                                              (X_cv_text, X_cv, y_cv),
@@ -54,11 +58,16 @@ def evaluate_model(model, X_train, X_cv, X_test,
         # metrics proba
         if hasattr(model, 'predict_proba'):
             if 'X_text' in predict_parameters:
-                y_pred_proba_ = model.predict_proba(X_text=X_text_)[:, 1]
+                y_pred_proba_ = model.predict_proba(X_text=X_text_)
             else:
-                y_pred_proba_ = model.predict_proba(X_)[:, 1]
-        for metric_name, metric_fn in metrics_proba.items():
-            r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+                y_pred_proba_ = model.predict_proba(X_)
+            if not multiclass:
+                y_pred_proba_ = y_pred_proba_[:, 1]
+                for metric_name, metric_fn in metrics_proba.items():
+                    r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+            elif multiclass:
+                for metric_name, metric_fn in metrics_proba_multiclass.items():
+                    r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
 
     return r
 

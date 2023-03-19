@@ -37,10 +37,10 @@ params_coupled_dict = {
         ]
 
         for (dataset_name, binary_classification) in [
-            ('rotten_tomatoes', 1),
-            ('sst2', 1),
+            # ('rotten_tomatoes', 1),
+            # ('sst2', 1),
             # ('imdb', 0),
-            ('financial_phrasebank', 1),
+            # ('financial_phrasebank', 1),
             ('financial_phrasebank', 0),
         ]
 
