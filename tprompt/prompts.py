@@ -27,10 +27,10 @@ def get_verbalizer(args):
 
     # keys are (dataset_name, binary_classification)
     DATA_OUTPUT_STRINGS = {
-        ('rotten_tomatoes', 0): VERB_LIST_DEFAULT,
-        ('sst2', 0): VERB_LIST_DEFAULT,
-        ('imdb', 0): VERB_LIST_DEFAULT,
-        ('emotion', 0): VERB_LIST_DEFAULT,
+        ('rotten_tomatoes', 1): VERB_LIST_DEFAULT,
+        ('sst2', 1): VERB_LIST_DEFAULT,
+        ('imdb', 1): VERB_LIST_DEFAULT,
+        ('emotion', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 0): [VERB_FFB_0, VERB_FFB_1],
     }

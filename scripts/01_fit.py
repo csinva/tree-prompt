@@ -30,12 +30,18 @@ params_coupled_dict = {
          model_name, checkpoint, batch_size, num_prompts,
          prompt_source, verbalizer_num)
 
+        for (checkpoint, batch_size) in [
+            ('gpt2', 32),
+            # ('EleutherAI/gpt-j-6B', 16),  
+            # ('EleutherAI/gpt-j-6B', 2),
+        ]
+
         for (dataset_name, binary_classification) in [
-            ('rotten_tomatoes', 0),
-            # ('sst2', 0),
+            ('rotten_tomatoes', 1),
+            ('sst2', 1),
             # ('imdb', 0),
-            # ('financial_phrasebank', 0),
-            # ('financial_phrasebank', 1),
+            ('financial_phrasebank', 1),
+            ('financial_phrasebank', 0),
         ]
 
         for (model_name, num_prompts) in [
@@ -46,16 +52,11 @@ params_coupled_dict = {
         
     
         for (prompt_source, verbalizer_num) in [
-            ('manual', 1),
+            ('manual', 0),
             ('data_demonstrations', 0),
             ('data_demonstrations', 1)
         ]
 
-        for (checkpoint, batch_size) in [
-            ('gpt2', 32),
-            # ('EleutherAI/gpt-j-6B', 16),  
-            # ('EleutherAI/gpt-j-6B', 2),
-        ]
     ],
     
     # ('model_name', 'split_strategy', 'max_depth',): [

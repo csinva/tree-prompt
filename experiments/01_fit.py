@@ -107,7 +107,7 @@ def add_main_args(parser):
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
     parser.add_argument('--truncate_example_length', type=int, default=3000,
                         help='Max length of characters for each input')
-    parser.add_argument('--binary_classification', type=int, default=0, help='Whether to truncate dataset to binary classification')
+    parser.add_argument('--binary_classification', type=int, default=1, help='Whether to truncate dataset to binary classification')
     return parser
 
 
@@ -132,8 +132,8 @@ if __name__ == '__main__':
     parser = add_computational_args(
         deepcopy(parser_without_computational_args))
     args = parser.parse_args()
-    if args.binary_classification and args.dataset_name in ['sst2', 'rotten_tomatoes', 'imdb']:
-        print(f'Skipping {args.dataset_name} since binary_classification=1')
+    if args.binary_classification == 0 and args.dataset_name in ['sst2', 'rotten_tomatoes', 'imdb']:
+        logging.info(f'Skipping {args.dataset_name} since binary_classification=0')
         exit(0)
     args.verbalizer = tprompt.prompts.get_verbalizer(args)
 
