@@ -14,10 +14,11 @@ save_dir = '/home/chansingh/mntv1'
 params_shared_dict = {
     'seed': [1],
     # 'save_dir': [join(save_dir, 'tree-prompt', 'feb25')],
-    'save_dir': [join(save_dir, 'tree-prompt', 'mar17')],
+    'save_dir': [join(save_dir, 'tree-prompt', 'mar18')],
     # 'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
     # 'dataset_name': ['rotten_tomatoes', 'sst2'], #, 'imdb'],
     # 'verbalizer_num': [0], # [0, 1],
+    'cache_prompt_features_dir': ['/home/chansingh/mntv1/tree-prompt/cache_prompt_features'],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -31,10 +32,10 @@ params_coupled_dict = {
 
         for (dataset_name, binary_classification) in [
             ('rotten_tomatoes', 0),
-            ('sst2', 0),
+            # ('sst2', 0),
             # ('imdb', 0),
-            ('financial_phrasebank', 0),
-            ('financial_phrasebank', 1),
+            # ('financial_phrasebank', 0),
+            # ('financial_phrasebank', 1),
         ]
 
         for (model_name, num_prompts) in [
@@ -90,12 +91,9 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
     # n_cpus=16,
-    # gpu_ids = get_gpu_ids(),
+    gpu_ids = get_gpu_ids(),
     # n_cpus=4,
-    gpu_ids = [0, 1, 2, 3],
-    # gpu_ids=[0, 1, 2, 3],
-    # shuffle=False,
-
+    # gpu_ids = [0, 1, 2, 3],
     # gpu_ids = [0],
     # shuffle=False,
 )

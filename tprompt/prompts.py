@@ -19,16 +19,24 @@ from os.path import dirname, basename, join
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
 def get_verbalizer(args):
-    VERB0 = {0: ' Negative.', 1: ' Positive.'}
-    VERB1 = {0: ' No.', 1: ' Yes.', }
-    VERB_LIST_DEFAULT = [VERB0, VERB1]
+    VERB_0 = {0: ' Negative.', 1: ' Positive.'}
+    VERB_1 = {0: ' No.', 1: ' Yes.', }
+    VERB_FFB_0 = {0: ' Negative.', 1: ' Neutral.', 2: ' Positive.'}
+    VERB_FFB_1 = {0: ' No.', 1: ' Maybe.', 2: ' Yes.'}
+    VERB_LIST_DEFAULT = [VERB_0, VERB_1]
+
+    # keys are (dataset_name, binary_classification)
     DATA_OUTPUT_STRINGS = {
-        'rotten_tomatoes': [VERB0, VERB1],
-        'sst2': [VERB0, VERB1],
-        'emotion': [VERB0, VERB1],
-        'financial_phrasebank': [VERB0, VERB1],
+        ('rotten_tomatoes', 0): VERB_LIST_DEFAULT,
+        ('sst2', 0): VERB_LIST_DEFAULT,
+        ('imdb', 0): VERB_LIST_DEFAULT,
+        ('emotion', 0): VERB_LIST_DEFAULT,
+        ('financial_phrasebank', 1): VERB_LIST_DEFAULT,
+        ('financial_phrasebank', 0): [VERB_FFB_0, VERB_FFB_1],
     }
-    return DATA_OUTPUT_STRINGS.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
+     #.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
+    return DATA_OUTPUT_STRINGS[(args.dataset_name, args.binary_classification)][args.verbalizer_num]
+    
 
 PROMPTS_MOVIE_0 = list(set([
     # ' What is the sentiment expressed by the reviewer for the movie?',
@@ -204,9 +212,9 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
     # random.seed(seed)
     rng = np.random.default_rng(seed=seed)
     if args.prompt_source == 'manual':
-        if args.dataset == ['rotten_tomatoes', 'sst2', 'imdb']:
+        if args.dataset_name in ['rotten_tomatoes', 'sst2', 'imdb']:
             return PROMPTS_MOVIE_0
-        elif args.dataset == ['financial_phrasebank']:
+        elif args.dataset_name in ['financial_phrasebank']:
             return PROMPTS_FINANCE_0
     elif args.prompt_source == 'data_demonstrations':
         template = args.template_data_demonstrations
@@ -231,19 +239,15 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
 def _calc_features_single_prompt(
     X_train_text, X_test_text, y_train, y_test, m, p
 ):
-    """Calculate features with a single prompt (cached with joblib)
+    """Calculate features with a single prompt (results get cached)
     """
-
-    logging.info('prompt ' + p)
     acc_baseline = max(y_train.mean(), 1 - y_train.mean())
     preds_train = m.predict(X_train_text)
     acc_train = np.mean(preds_train == y_train)
-    logging.info(
-        f'\tacc_train {acc_train:0.3f} baseline: {acc_baseline:0.3f}')
 
     preds_test = m.predict(X_test_text)
     acc_test = np.mean(preds_test == y_test)
-    logging.info(f'\tacc_test {acc_test:0.3f}')
+    logging.info(f'prompt={p[:100]}... train:{acc_train:0.3f} baseline:{acc_baseline:0.3f} test:{acc_test:0.3f}')
 
     return preds_train, preds_test, acc_train
 
@@ -276,6 +280,7 @@ def engineer_prompt_features(
         m.prompt = p
         arg_names_cache=[
             'dataset_name',
+            'binary_classification',
             'checkpoint',
             'verbalizer_num',
             'prompt_source',
@@ -284,6 +289,7 @@ def engineer_prompt_features(
         args_dict_cache = {
             k: v for k, v in args._get_kwargs() if k in arg_names_cache
         }
+
         args_dict_cache['prompt'] = p
         save_dir_unique_hash = sha256(args_dict_cache)
         cache_file = join(args.cache_prompt_features_dir, f'{save_dir_unique_hash}.pkl')

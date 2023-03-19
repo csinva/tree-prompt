@@ -135,6 +135,7 @@ if __name__ == '__main__':
     if args.binary_classification and args.dataset_name in ['sst2', 'rotten_tomatoes', 'imdb']:
         print(f'Skipping {args.dataset_name} since binary_classification=1')
         exit(0)
+    args.verbalizer = tprompt.prompts.get_verbalizer(args)
 
     # set up logging
     logger = logging.getLogger()
@@ -169,6 +170,7 @@ if __name__ == '__main__':
         X_test_text = [x[:args.truncate_example_length] for x in X_test_text]
         print('examples', X_train_text[:30])
 
+
     # get converted tabular data
     X_train, X_test, feature_names = \
         tprompt.data.convert_text_data_to_counts_array(
@@ -181,7 +183,6 @@ if __name__ == '__main__':
     # split (could subsample here too)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
-    args.verbalizer = tprompt.prompts.get_verbalizer(args)
 
     # load model
     if args.model_name == 'tprompt':
