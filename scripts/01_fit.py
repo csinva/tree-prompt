@@ -32,16 +32,17 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             ('gpt2', 32),
+            # ('EleutherAI/gpt-j-6B', 4),
             # ('EleutherAI/gpt-j-6B', 16),  
-            # ('EleutherAI/gpt-j-6B', 2),
         ]
 
         for (dataset_name, binary_classification) in [
             # ('rotten_tomatoes', 1),
             # ('sst2', 1),
-            # ('imdb', 0),
+            # ('imdb', 1),
             # ('financial_phrasebank', 1),
-            ('financial_phrasebank', 0),
+            # ('financial_phrasebank', 0),
+            ('emotion', 0),
         ]
 
         for (model_name, num_prompts) in [
@@ -92,9 +93,11 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
     # n_cpus=16,
-    gpu_ids = get_gpu_ids(),
+    # gpu_ids = get_gpu_ids(),
+    # gpu_ids=[2, 3],
     # n_cpus=4,
-    # gpu_ids = [0, 1, 2, 3],
+    gpu_ids = [0, 1, 2, 3],
     # gpu_ids = [0],
-    # shuffle=False,
+    # reverse=True,
+    shuffle=True,
 )

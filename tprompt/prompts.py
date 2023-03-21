@@ -23,6 +23,10 @@ def get_verbalizer(args):
     VERB_1 = {0: ' No.', 1: ' Yes.', }
     VERB_FFB_0 = {0: ' Negative.', 1: ' Neutral.', 2: ' Positive.'}
     VERB_FFB_1 = {0: ' No.', 1: ' Maybe.', 2: ' Yes.'}
+    # VERB_EMOTION_BINARY = {0: ' Sad.', 1: ' Happy.'}
+    VERB_EMOTION_0 = {0: ' Sad.', 1: ' Happy.', 2: ' Love.', 3: ' Anger.', 4: ' Fear.', 5: ' Surprise.'}
+    # VERB_EMOTION_1 = {0: ' No.', 1: ' Maybe.', 2: ' Yes.'}
+
     VERB_LIST_DEFAULT = [VERB_0, VERB_1]
 
     # keys are (dataset_name, binary_classification)
@@ -33,10 +37,11 @@ def get_verbalizer(args):
         ('emotion', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 0): [VERB_FFB_0, VERB_FFB_1],
+        ('emotion', 0): [VERB_EMOTION_0],
     }
      #.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
     return DATA_OUTPUT_STRINGS[(args.dataset_name, args.binary_classification)][args.verbalizer_num]
-    
+
 
 PROMPTS_MOVIE_0 = list(set([
     # ' What is the sentiment expressed by the reviewer for the movie?',
@@ -186,7 +191,7 @@ PROMPTS_FINANCE_0 = sorted(list(set([
     'The financial performance of the industry as a whole has been',
     'The financial situation of the company seems to be',
 
-    # > Generate nuanced prompts for classifying finfancial sentences as Positive or Negative.
+    # > Generate nuanced prompts for classifying financial sentences as Positive or Negative.
     'Overall, the assessement of the financial performance of the company is',
     "The company's earnings exceeded expectations:",
     "The company's revenue figures were",
@@ -207,6 +212,49 @@ PROMPTS_FINANCE_0 = sorted(list(set([
     "The latest financial report suggests that the company's financial strategy has been",
 ])))
 
+PROMPTS_EMOTION_0 = list(set([
+    ' The emotion of this sentence is:',
+    ' This tweet contains the emotion',
+    ' The emotion of this tweet is',
+    ' I feel this tweet is related to ',
+    ' The feeling of this tweet was',
+    ' This tweet made me feel',
+
+    # Chat-GPT-Generated
+    # > Generate prompts for classifying tweets based on their emotion (e.g. joy, sadness, fear, etc.). The prompt should end with the emotion.
+    ' When I read this tweet, the emotion that came to mind was',
+    ' The sentiment expressed in this tweet is',
+    ' This tweet conveys a sense of',
+    ' The emotional tone of this tweet is',
+    ' This tweet reflects a feeling of',
+    ' The underlying emotion in this tweet is',
+    ' This tweet evokes a sense of',
+    ' The mood conveyed in this tweet is',
+    ' I perceive this tweet as being',
+    ' This tweet gives off a feeling of',
+    ' The vibe of this tweet is',
+    ' The atmosphere of this tweet suggests a feeling of',
+    ' The overall emotional content of this tweet is',
+    ' The affective state expressed in this tweet is',
+
+    # > Generate language model prompts for classifying tweets based on their emotion (e.g. joy, sadness, fear, etc.). The prompt should end with the emotion.
+    " Based on the content of this tweet, the emotion I would classify it as"
+    " When reading this tweet, the predominant emotion that comes to mind is"
+    " This tweet seems to convey a sense of"
+    " I detect a feeling of"
+    " If I had to categorize the emotion behind this tweet, I would say it is"
+    " This tweet gives off a sense of"
+    " When considering the tone and language used in this tweet, I would classify the emotion as"
+
+    # > Generate unique prompts for detecting the emotion of a tweet (e.g. joy, sadness, surprise). The prompt should end with the emotion.
+    # ' The emotion of this tweet is',
+    ' The main emotion in this sentence is',
+    ' The overall tone I sense is',
+    ' The mood I am in is',
+    ' Wow this made me feel',
+    ' This tweet expresses',
+]))
+
 def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
     assert args.prompt_source in ['manual', 'data_demonstrations']
     # random.seed(seed)
@@ -216,6 +264,10 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
             return PROMPTS_MOVIE_0
         elif args.dataset_name in ['financial_phrasebank']:
             return PROMPTS_FINANCE_0
+        elif args.dataset_name in ['emotion']:
+            return PROMPTS_EMOTION_0
+        else:
+            raise ValueError('need to set prompt in get_prompts!')
     elif args.prompt_source == 'data_demonstrations':
         template = args.template_data_demonstrations
         # 1, 0 since positive usually comes first
@@ -270,6 +322,7 @@ def engineer_prompt_features(
 
     # test different manual stumps
     prompts = get_prompts(args, X_train_text, y_train, m._get_verbalizer(), seed=1) # note, not passing seed here!
+    # print('prompts', prompts)
     prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
     prompt_features_test = np.zeros((len(X_test_text), len(prompts)))
     accs_train = np.zeros(len(prompts))

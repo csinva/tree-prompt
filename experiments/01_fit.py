@@ -144,6 +144,9 @@ if __name__ == '__main__':
     if args.binary_classification == 0 and args.dataset_name in ['sst2', 'rotten_tomatoes', 'imdb']:
         logging.info(f'Skipping {args.dataset_name} since binary_classification=0')
         exit(0)
+    if args.dataset_name == 'emotion' and args.verbalizer_num == 1:
+        logging.info(f'Skipping {args.dataset_name} since verbalizer_num=1')
+        exit(0)
     args.verbalizer = tprompt.prompts.get_verbalizer(args)
 
     # set up logging
@@ -177,7 +180,7 @@ if __name__ == '__main__':
     if args.truncate_example_length > 0:
         X_train_text = [x[:args.truncate_example_length] for x in X_train_text]
         X_test_text = [x[:args.truncate_example_length] for x in X_test_text]
-        print('examples', X_train_text[:30])
+        # print('examples', X_train_text[:30])
 
 
     # get converted tabular data
