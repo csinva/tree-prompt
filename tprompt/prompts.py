@@ -322,7 +322,7 @@ def engineer_prompt_features(
 
     # test different manual stumps
     prompts = get_prompts(args, X_train_text, y_train, m._get_verbalizer(), seed=1) # note, not passing seed here!
-    # print('prompts', prompts)
+    # print('prompts', prompts)                                                   
     prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
     prompt_features_test = np.zeros((len(X_test_text), len(prompts)))
     accs_train = np.zeros(len(prompts))

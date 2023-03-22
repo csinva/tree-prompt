@@ -32,17 +32,16 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             ('gpt2', 32),
-            # ('EleutherAI/gpt-j-6B', 4),
+            ('EleutherAI/gpt-j-6B', 2),
             # ('EleutherAI/gpt-j-6B', 16),  
         ]
 
         for (dataset_name, binary_classification) in [
             # ('rotten_tomatoes', 1),
             # ('sst2', 1),
-            # ('imdb', 1),
-            # ('financial_phrasebank', 1),
+            ('imdb', 1),
             # ('financial_phrasebank', 0),
-            ('emotion', 0),
+            # ('emotion', 0),
         ]
 
         for (model_name, num_prompts) in [

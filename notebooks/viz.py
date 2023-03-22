@@ -49,6 +49,11 @@ MODELS_RENAME_DICT = {
     'manual_gbdt': 'TreePrompt (GBDT)'
 }
 
+CHECKPOINTS_RENAME_DICT = {
+    'EleutherAI/gpt-j-6B': 'GPT-J (6B)',
+    'gpt2': 'GPT-2 (117M)',
+}
+
 XLAB = {
     'max_depth': 'Tree depth',
     'n_estimators': '# estimators',
@@ -65,7 +70,7 @@ COLORS = {
 
 def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf', xlim=None):
     dset_names = rp['dataset_name'].unique()
-    R, C = 1, min(3, len(dset_names))
+    R, C = 1, len(dset_names)
     fig, axes = plt.subplots(figsize=(C * 2.5, R * 2.5), nrows=R, ncols=C, layout='constrained')
     for i in range(R * C):
         # plt.subplot(R, C, i + 1)
@@ -95,7 +100,8 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
                 ax.plot(g[x], g['roc_auc_test'], **kwargs)
         ax.set_title(DSETS_RENAME_DICT.get(dset_name, dset_name), fontsize='medium')
         ax.set_xlabel(XLAB.get(x, x))
-        ax.set_ylabel('ROC AUC')
+        if i == 0:
+            ax.set_ylabel('ROC AUC')
         if xlim:
             ax.set_xlim(0, xlim)
     fig.legend(
