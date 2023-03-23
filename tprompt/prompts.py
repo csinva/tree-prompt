@@ -32,7 +32,7 @@ def get_verbalizer(args):
         ('emotion', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 0): [VERB_FFB_0, VERB_FFB_1],
-        ('emotion', 0): [VERB_EMOTION_0],
+        ('emotion', 0): [VERB_EMOTION_0, VERB_1],
     }
      #.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
     return DATA_OUTPUT_STRINGS[(args.dataset_name, args.binary_classification)][args.verbalizer_num]
