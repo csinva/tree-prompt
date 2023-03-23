@@ -19,6 +19,8 @@ def get_verbalizer(args):
     VERB_FFB_0 = {0: ' Negative.', 1: ' Neutral.', 2: ' Positive.'}
     VERB_FFB_1 = {0: ' No.', 1: ' Maybe.', 2: ' Yes.'}
     # VERB_EMOTION_BINARY = {0: ' Sad.', 1: ' Happy.'}
+
+    # note: verb=1 usually uses yes/no. We don't support this for emotion, since we must specify a value for each of 6 classes
     VERB_EMOTION_0 = {0: ' Sad.', 1: ' Happy.', 2: ' Love.', 3: ' Anger.', 4: ' Fear.', 5: ' Surprise.'}
     # VERB_EMOTION_1 = {0: ' No.', 1: ' Maybe.', 2: ' Yes.'}
 
@@ -32,7 +34,7 @@ def get_verbalizer(args):
         ('emotion', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 1): VERB_LIST_DEFAULT,
         ('financial_phrasebank', 0): [VERB_FFB_0, VERB_FFB_1],
-        ('emotion', 0): [VERB_EMOTION_0, VERB_1],
+        ('emotion', 0): [VERB_EMOTION_0],
     }
      #.get(args.dataset_name, VERB_LIST_DEFAULT)[args.verbalizer_num]
     return DATA_OUTPUT_STRINGS[(args.dataset_name, args.binary_classification)][args.verbalizer_num]
