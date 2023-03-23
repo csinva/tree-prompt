@@ -54,6 +54,11 @@ CHECKPOINTS_RENAME_DICT = {
     'gpt2': 'GPT-2 (117M)',
 }
 
+VERBS_RENAME_DICT = {
+    0: 'class names',
+    1: 'yes/no',
+}
+
 XLAB = {
     'max_depth': 'Tree depth',
     'n_estimators': '# estimators',
@@ -68,7 +73,9 @@ COLORS = {
     'manual_gbdt': 'black',
 }
 
-def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/perf_curves_individual.pdf', xlim=None):
+def plot_perf_curves_individual(rp, x='max_depth',
+                                fname_save='../results/figs/perf_curves_individual.pdf', xlim=None,
+                                metric = 'roc_auc_test'):
     dset_names = rp['dataset_name'].unique()
     R, C = 1, len(dset_names)
     fig, axes = plt.subplots(figsize=(C * 2.5, R * 2.5), nrows=R, ncols=C, layout='constrained')
@@ -95,9 +102,13 @@ def plot_perf_curves_individual(rp, x='max_depth', fname_save='../results/figs/p
                 kwargs['label'] = MODELS_RENAME_DICT.get(k, k)
             if k == 'manual_gbdt':
                 # horizontal line
-                ax.axhline(g['roc_auc_test'].mean(), **kwargs)
+                ax.axhline(g[metric].mean(), **kwargs)
             else:
-                ax.plot(g[x], g['roc_auc_test'], **kwargs)
+                if metric + '_err' in g.columns:
+                    ax.errorbar(g[x], g[metric], yerr=g[metric + '_err'], **kwargs)
+                else:
+                    ax.plot(g[x], g[metric], **kwargs)
+                # ax.plot(g[x], g['roc_auc_test'], **kwargs)
         ax.set_title(DSETS_RENAME_DICT.get(dset_name, dset_name), fontsize='medium')
         ax.set_xlabel(XLAB.get(x, x))
         if i == 0:

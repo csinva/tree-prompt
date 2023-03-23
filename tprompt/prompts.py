@@ -5,13 +5,8 @@ import numpy as np
 import tprompt.stump
 import tprompt.tree
 import tprompt.data
-import random
 from tqdm import tqdm
-import imodelsx.data
 import logging
-import sklearn.tree
-from transformers import AutoModelForCausalLM
-# from joblib import Memory
 import joblib
 import os
 from dict_hash import sha256
@@ -257,7 +252,6 @@ PROMPTS_EMOTION_0 = list(set([
 
 def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
     assert args.prompt_source in ['manual', 'data_demonstrations']
-    # random.seed(seed)
     rng = np.random.default_rng(seed=seed)
     if args.prompt_source == 'manual':
         if args.dataset_name in ['rotten_tomatoes', 'sst2', 'imdb']:
