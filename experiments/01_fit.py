@@ -8,6 +8,7 @@ from os.path import join, dirname
 import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, balanced_accuracy_score, brier_score_loss
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
 import sklearn.ensemble
 import sklearn.tree
 import pickle as pkl
@@ -195,7 +196,6 @@ if __name__ == '__main__':
         # apply onehot encoding to prompt features if more than 3 classes
         # (FPB 3 classes are in order so let them be)
         if len(np.unique(y_train)) > 3:
-            from sklearn.preprocessing import OneHotEncoder
             enc = OneHotEncoder(handle_unknown='ignore')
             X_train = enc.fit_transform(X_train)
             X_test = enc.transform(X_test)
@@ -266,13 +266,11 @@ if __name__ == '__main__':
     if hasattr(model, 'prompts_list'):
         r['prompts_list'] = model.prompts_list
         r['prompt'] = r['prompts_list'][0]
-    # r['feature_names'] = feature_names
-    if isinstance(model, sklearn.tree.DecisionTreeClassifier):
-        r['str_tree'] = sklearn.tree.export_text(
-            model, feature_names=feature_names)
-    else:
-        r['str_tree'] = str(model)
-
+    # if isinstance(model, sklearn.tree.DecisionTreeClassifier):
+        # r['str_tree'] = sklearn.tree.export_text(
+            # model, feature_names=feature_names)
+    # else:
+        # r['str_tree'] = str(model)
     r['feature_names'] = feature_names
     pkl.dump(r, open(join(save_dir_unique, 'results.pkl'), 'wb'))
     pkl.dump(model, open(join(save_dir_unique, 'model.pkl'), 'wb'))

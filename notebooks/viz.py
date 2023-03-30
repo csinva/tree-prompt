@@ -12,8 +12,6 @@ import dtreeviz.trees
 from sklearn.tree import plot_tree
 import sys
 import numpy as np
-import llm_tree.data
-import dvu
 import dtreeviz
 import numpy as np
 import imodelsx.viz
