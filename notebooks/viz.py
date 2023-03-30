@@ -41,6 +41,15 @@ DSETS_RENAME_DICT = {
     'financial_phrasebank': 'Financial phrasebank',
 }
 
+DSETS_RENAME_DICT_ABBR = {
+    'emotion': 'Emotion',
+    'sst2': 'SST2',
+    'tweet_eval': 'Tweet (Hate)',
+    'imdb': 'IMDB',
+    'rotten_tomatoes': 'RT',
+    'financial_phrasebank': 'FPB',
+}
+
 MODELS_RENAME_DICT = {
     'decision_tree': 'CART',
     'manual_tree': 'TreePrompt',
