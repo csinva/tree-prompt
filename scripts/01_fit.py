@@ -31,17 +31,17 @@ params_coupled_dict = {
          prompt_source, verbalizer_num)
 
         for (checkpoint, batch_size) in [
-            # ('gpt2', 8),
-            ('EleutherAI/gpt-j-6B', 1),
-            # ('EleutherAI/gpt-j-6B', 16),  
+            ('gpt2', 32),
+            # ('EleutherAI/gpt-j-6B', 2),
+            ('EleutherAI/gpt-j-6B', 16),  
         ]
 
         for (dataset_name, binary_classification) in [
             # ('rotten_tomatoes', 1),
             # ('sst2', 1),
-            ('imdb', 1),
+            # ('imdb', 1),
             # ('financial_phrasebank', 0),
-            # ('emotion', 0),
+            ('emotion', 0),
         ]
 
         for (model_name, num_prompts) in [
@@ -54,7 +54,7 @@ params_coupled_dict = {
         for (prompt_source, verbalizer_num) in [
             ('manual', 0),
             ('data_demonstrations', 0),
-            ('data_demonstrations', 1)
+            # ('data_demonstrations', 1)
         ]
 
     ],
@@ -95,8 +95,8 @@ submit_utils.run_args_list(
     # gpu_ids = get_gpu_ids(),
     # gpu_ids=[0, 1],
     # n_cpus=4,
-    gpu_ids = [0, 1, 2],
+    # gpu_ids = [0, 1, 2, 3],
     # gpu_ids = [0],
     # reverse=True,
-    shuffle=True,
+    shuffle=False,
 )

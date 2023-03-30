@@ -235,13 +235,13 @@ PROMPTS_EMOTION_0 = list(set([
     ' The affective state expressed in this tweet is',
 
     # > Generate language model prompts for classifying tweets based on their emotion (e.g. joy, sadness, fear, etc.). The prompt should end with the emotion.
-    " Based on the content of this tweet, the emotion I would classify it as"
-    " When reading this tweet, the predominant emotion that comes to mind is"
-    " This tweet seems to convey a sense of"
-    " I detect a feeling of"
-    " If I had to categorize the emotion behind this tweet, I would say it is"
-    " This tweet gives off a sense of"
-    " When considering the tone and language used in this tweet, I would classify the emotion as"
+    " Based on the content of this tweet, the emotion I would classify it as",
+    " When reading this tweet, the predominant emotion that comes to mind is",
+    " This tweet seems to convey a sense of",
+    " I detect a feeling of",
+    " If I had to categorize the emotion behind this tweet, I would say it is",
+    " This tweet gives off a sense of",
+    " When considering the tone and language used in this tweet, I would classify the emotion as",
 
     # > Generate unique prompts for detecting the emotion of a tweet (e.g. joy, sadness, surprise). The prompt should end with the emotion.
     # ' The emotion of this tweet is',
@@ -288,7 +288,10 @@ def _calc_features_single_prompt(
     X_train_text, X_test_text, y_train, y_test, m, p
 ):
     """Calculate features with a single prompt (results get cached)
+    preds_train: np.ndarray[int] of shape (n_train,)
+        If multiclass, each int takes value 0, 1, ..., n_classes - 1 based on the verbalizer
     """
+    m.prompt = p
     acc_baseline = max(y_train.mean(), 1 - y_train.mean())
     preds_train = m.predict(X_train_text)
     acc_train = np.mean(preds_train == y_train)
@@ -326,7 +329,7 @@ def engineer_prompt_features(
     # compute features for prompts
     os.makedirs(args.cache_prompt_features_dir, exist_ok=True)
     for i, p in enumerate(tqdm(prompts)):
-        m.prompt = p
+        # set up name of file for saving based on argument values
         arg_names_cache=[
             'dataset_name',
             'binary_classification',
@@ -338,11 +341,11 @@ def engineer_prompt_features(
         args_dict_cache = {
             k: v for k, v in args._get_kwargs() if k in arg_names_cache
         }
-
         args_dict_cache['prompt'] = p
         save_dir_unique_hash = sha256(args_dict_cache)
         cache_file = join(args.cache_prompt_features_dir, f'{save_dir_unique_hash}.pkl')
 
+        # load from cache if possible
         loaded_from_cache = False
         if os.path.exists(cache_file):
             # print('loading from cache!')
@@ -352,12 +355,12 @@ def engineer_prompt_features(
             except:
                 pass
         
+        # actually compute prompt features (integer valued, 0, ..., n_classes - 1)
         if not loaded_from_cache:
             preds_train, preds_test, acc_train = _calc_features_single_prompt(
                 X_train_text, X_test_text, y_train, y_test, m, p
             )
             joblib.dump((preds_train, preds_test, acc_train), cache_file)
-
         prompt_features_train[:, i] = preds_train
         prompt_features_test[:, i] = preds_test
         accs_train[i] = acc_train

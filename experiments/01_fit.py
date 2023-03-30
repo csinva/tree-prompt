@@ -199,7 +199,7 @@ if __name__ == '__main__':
             enc = OneHotEncoder(handle_unknown='ignore')
             X_train = enc.fit_transform(X_train)
             X_test = enc.transform(X_test)
-            feature_names = enc.get_feature_names_out()
+            feature_names = enc.get_feature_names_out(feature_names)
         
     # split (could subsample here too)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
