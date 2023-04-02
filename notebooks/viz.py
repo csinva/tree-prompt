@@ -53,7 +53,8 @@ MODELS_RENAME_DICT = {
     'manual_tree': 'TreePrompt',
     'manual_ensemble': 'Ensemble (best-first)',
     'manual_boosting': 'Ensemble (boosting)',
-    'manual_gbdt': 'TreePrompt (GBDT)'
+    'manual_gbdt': 'TreePrompt (GBDT)',
+    'manual_rf': 'TreePrompt (RF)',
 }
 
 CHECKPOINTS_RENAME_DICT = {
@@ -74,10 +75,14 @@ XLAB = {
 }
 
 COLORS = {
-    'manual_tree': 'black',
-    'manual_ensemble': 'C0',
-    'manual_boosting': 'C1',
-    'manual_gbdt': 'black',
+    'manual_tree': 'C0', #'black',
+    'manual_ensemble': '#888', #'C0',
+    'manual_boosting': '#333', #'C1',
+    'manual_gbdt': 'C0',
+    'manual_rf': 'lightcoral',
+}
+COLORS_RENAMED_DICT = {
+    MODELS_RENAME_DICT[k]: c for k, c in COLORS.items()
 }
 
 def plot_perf_curves_individual(rp, x='max_depth',
@@ -95,19 +100,20 @@ def plot_perf_curves_individual(rp, x='max_depth',
         dset_name = dset_names[i]
         rd = rp[rp.dataset_name == dset_name]
         groupings = 'model_name'
-        for (k, g) in rd.groupby(by=groupings):
+        rd = rd.sort_values(by=['model_name', 'max_depth'], ascending=False)
+        for (k, g) in rd.groupby(by=groupings, sort=False):
 
             if k == 'manual_tree':
-                kwargs = {'lw': 1, 'alpha': 1, 'ls': '-', 'marker': '.'}
-            elif k == 'manual_gbdt':
-                kwargs = {'lw': 1, 'alpha': 0.5, 'ls': '--', 'marker': ''}
+                kwargs = {'lw': 1.5, 'alpha': 1, 'ls': '-', 'marker': '.'}
+            elif k == 'manual_gbdt' or k == 'manual_rf':
+                kwargs = {'lw': 1.5, 'alpha': 0.5, 'ls': '--', 'marker': ''}
             else:
-                kwargs = {'alpha': 0.5, 'lw': 1, 'ls': '--', 'marker': '.'}
+                kwargs = {'lw': 1.5, 'alpha': 0.5, 'ls': '-', 'marker': '.'}
             kwargs['color'] = COLORS.get(k, 'gray')
             # print(g[x])
             if i == R * C - 1:
                 kwargs['label'] = MODELS_RENAME_DICT.get(k, k)
-            if k == 'manual_gbdt':
+            if k == 'manual_gbdt' or k == 'manual_rf':
                 # horizontal line
                 ax.axhline(g[metric].mean(), **kwargs)
             else:
