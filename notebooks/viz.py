@@ -81,6 +81,12 @@ COLORS = {
     'manual_gbdt': 'C0',
     'manual_rf': 'lightcoral',
 }
+
+SOURCE_RENAME_DICT = {
+    'manual': 'Human',
+    'data_demonstrations': 'Demonstrations',
+}
+
 COLORS_RENAMED_DICT = {
     MODELS_RENAME_DICT[k]: c for k, c in COLORS.items()
 }
