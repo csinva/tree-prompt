@@ -1,6 +1,5 @@
 from transformers import AutoTokenizer
 from tprompt.utils import load_lm
-import argparse
 import numpy as np
 import tprompt.stump
 import tprompt.tree
