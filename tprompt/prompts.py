@@ -322,7 +322,7 @@ def _calc_features_single_prompt(X, y, m, p):
     return preds, acc
 
 
-def engineer_prompt_features(
+def calc_prompt_features(
     args,
     prompts: List[str],
     X_train_text,
@@ -343,6 +343,7 @@ def engineer_prompt_features(
         model=model,
         checkpoint=checkpoint,
         verbalizer=verbalizer,
+        batch_size=args.batch_size,
     )
 
     # test different manual stumps

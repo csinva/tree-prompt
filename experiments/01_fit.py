@@ -9,7 +9,6 @@ import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, balanced_accuracy_score, brier_score_loss
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
-import sklearn.ensemble
 import sklearn.tree
 import pickle as pkl
 import imodelsx.data
@@ -190,7 +189,7 @@ if __name__ == '__main__':
             args, X_train_text, y_train, args.verbalizer, seed=1 # note, not passing seed here!
         )  
         X_train, X_test, feature_names = \
-            tprompt.prompts.engineer_prompt_features(
+            tprompt.prompts.calc_prompt_features(
                 args, prompts, X_train_text, X_test_text,
                 y_train, y_test, args.checkpoint, args.verbalizer,
                 cache_prompt_features_dir=args.cache_prompt_features_dir,

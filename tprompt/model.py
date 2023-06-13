@@ -4,7 +4,7 @@ from copy import deepcopy
 from sklearn.tree import DecisionTreeClassifier
 import sklearn.ensemble
 import sklearn.tree
-
+import tprompt.tree
 
 class IdentityEnsembleClassifier:
     def __init__(self, n_estimators=1, boosting=False):

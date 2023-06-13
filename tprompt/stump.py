@@ -29,6 +29,7 @@ class PromptStump:
         checkpoint: str = "EleutherAI/gpt-j-6B",
         checkpoint_prompting: str = "EleutherAI/gpt-j-6B",
         verbalizer: Dict[int, str] = {0: " Negative.", 1: " Positive."},
+        batch_size: int=1,
     ):
         """Fit a single stump.
         Can use tabular features...
@@ -63,6 +64,7 @@ class PromptStump:
             self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
         else:
             self.tokenizer = tokenizer
+        self.batch_size = batch_size
 
         # tree stuff
         self.child_left = None
@@ -87,7 +89,7 @@ class PromptStump:
         if not self.split_strategy == 'manual':
             # self.model = self.model.to('cpu')
             print(
-                f"calling explain_dataset_iprompt with batch size {self.args.batch_size}"
+                f"calling explain_dataset_iprompt with batch size {self.batch_size}"
             )
             prompts, metadata = imodelsx.explain_dataset_iprompt(
                 lm=self.model,
@@ -97,7 +99,7 @@ class PromptStump:
                 num_learned_tokens=12,  # how long of a prompt to learn
                 n_shots=1,  # number of examples in context
                 n_epochs=5,  # how many epochs to search
-                batch_size=self.args.batch_size,  # batch size for iprompt
+                batch_size=self.batch_size,  # batch size for iprompt
                 llm_float16=False,  # whether to load the model in float_16
                 verbose=1,  # how much to print
                 # sets template like ${input}${prefix}
@@ -154,13 +156,13 @@ class PromptStump:
             preds = self._get_logit_for_target_tokens_batched(
                 [self.prompt + template % (x, "") for x in X_text],
                 target_token_ids,
-                batch_size=self.args.batch_size,
+                batch_size=self.batch_size,
             )
         else:
             preds = self._get_logit_for_target_tokens_batched(
                 [x + self.prompt for x in X_text],
                 target_token_ids,
-                batch_size=self.args.batch_size,
+                batch_size=self.batch_size,
             )
         # preds = np.zeros((len(X_text), len(target_token_ids)))
         # for i, x in enumerate(X_text):

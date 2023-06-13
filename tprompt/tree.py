@@ -76,6 +76,7 @@ class Tree:
             model=model,
             checkpoint=self.checkpoint,
             checkpoint_prompting=self.checkpoint_prompting,
+            batch_size=self.args.batch_size,
         )
 
         # fit root stump
