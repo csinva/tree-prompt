@@ -186,9 +186,12 @@ if __name__ == '__main__':
 
     # get converted tabular data
     if args.model_name.startswith('manual'):
+        prompts = tprompt.prompts.get_prompts(
+            args, X_train_text, y_train, args.verbalizer, seed=1
+        )  # note, not passing seed here!
         X_train, X_test, feature_names = \
             tprompt.prompts.engineer_prompt_features(
-                args, X_train_text, X_test_text, y_train, y_test)
+                args, prompts, X_train_text, X_test_text, y_train, y_test)
 
         # apply onehot encoding to prompt features if more than 3 classes
         # (FPB 3 classes are in order so let them be)

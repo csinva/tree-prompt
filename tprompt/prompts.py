@@ -1,3 +1,4 @@
+from typing import List
 from transformers import AutoTokenizer
 from tprompt.utils import load_lm
 import numpy as np
@@ -331,6 +332,7 @@ def _calc_features_single_prompt(X_train_text, X_test_text, y_train, y_test, m, 
 
 def engineer_prompt_features(
     args,
+    prompts: List[str],
     X_train_text,
     X_test_text,
     y_train,
@@ -338,7 +340,6 @@ def engineer_prompt_features(
     # cache_dir=join(path_to_repo, 'results', 'cache_prompt_features'),
 ):
     logging.info("calculating prompt features with " + args.checkpoint)
-    args.prompt = "Placeholder"
 
     # uses args.verbalizer
     tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
@@ -348,12 +349,10 @@ def engineer_prompt_features(
         split_strategy="manual",  # 'manual' specifies that we use args.prompt
         model=model,
         checkpoint=args.checkpoint,
+        verbalizer=args.verbalizer,
     )
 
     # test different manual stumps
-    prompts = get_prompts(
-        args, X_train_text, y_train, m._get_verbalizer(), seed=1
-    )  # note, not passing seed here!
     # print('prompts', prompts)
     prompt_features_train = np.zeros((len(X_train_text), len(prompts)))
     prompt_features_test = np.zeros((len(X_test_text), len(prompts)))

@@ -15,10 +15,11 @@ import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-class Stump(ABC):
+class PromptStump:
     def __init__(
         self,
         args,
+        prompt: str=None,
         split_strategy: str = "iprompt",
         tokenizer=None,
         max_features=10,
@@ -27,18 +28,18 @@ class Stump(ABC):
         model: AutoModelForCausalLM = None,
         checkpoint: str = "EleutherAI/gpt-j-6B",
         checkpoint_prompting: str = "EleutherAI/gpt-j-6B",
-        verbalizer: Dict[str] = {0: " Negative.", 1: " Positive."},
+        verbalizer: Dict[int, str] = {0: " Negative.", 1: " Positive."},
     ):
         """Fit a single stump.
         Can use tabular features...
             Currently only supports binary classification with binary features.
         Params
         ------
+        prompt: str
+            the prompt to use (optional)
         split_strategy: str
             'iprompt' - use iprompt to split
             'manual' - use passed prompt in args.prompt
-            'cart' - use cart to split
-            'linear' - use linear to split
         max_features: int
             used by StumpTabular to decide how many features to save
         checkpoint: str
@@ -49,6 +50,7 @@ class Stump(ABC):
             the model used for finding the prompt
         """
         self.args = args
+        self.prompt = prompt
         assert split_strategy in ["iprompt", "cart", "linear", "manual"]
         self.split_strategy = split_strategy
         self.assert_checks = assert_checks
@@ -65,48 +67,8 @@ class Stump(ABC):
         # tree stuff
         self.child_left = None
         self.child_right = None
+        self.verbalizer = verbalizer
 
-    def __getstate__(self):
-        """Get the stump but prevent certain attributes from being pickled.
-
-        See also https://stackoverflow.com/a/54139237/2287177
-        """
-        state = self.__dict__.copy()
-        # Don't pickle big things
-        if "model" in state:
-            del state["model"]
-        if "tokenizer" in state:
-            del state["tokenizer"]
-        if "feature_names" in state:
-            del state["feature_names"]
-        return state
-
-    @abstractmethod
-    def fit(self, X_text: List[str], y: List[int], feature_names=None, X=None):
-        return self
-
-    @abstractmethod
-    def predict(self, X_text: List[str]) -> np.ndarray[int]:
-        return
-
-    def _set_value_acc_samples(self, X_text, y):
-        """Set value and accuracy of stump."""
-        idxs_right = self.predict(X_text).astype(bool)
-        n_right = idxs_right.sum()
-        if n_right == 0 or n_right == y.size:
-            self.failed_to_split = True
-            return
-        else:
-            self.failed_to_split = False
-        self.value = [np.mean(y[~idxs_right]), np.mean(y[idxs_right])]
-        self.value_mean = np.mean(y)
-        self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]
-        self.acc = accuracy_score(y, 1 * idxs_right)
-
-
-class PromptStump(Stump):
-    def __init__(self, *args, **kwargs):
-        super(PromptStump, self).__init__(*args, **kwargs)
         if self.verbose:
             logging.info(f"Loading model {self.checkpoint}")
 
@@ -120,13 +82,10 @@ class PromptStump(Stump):
 
         # actually run fitting
         input_strings = X_text
-        verbalizer_dict = self._get_verbalizer()
-        output_strings = [verbalizer_dict[int(yi)] for yi in y]
+        output_strings = [self.verbalizer[int(yi)] for yi in y]
 
-        # get prompt
-        if self.split_strategy == "manual":
-            self.prompt = self.args.prompt
-        else:
+        # set self.prompt
+        if not self.split_strategy == 'manual':
             # self.model = self.model.to('cpu')
             print(
                 f"calling explain_dataset_iprompt with batch size {self.args.batch_size}"
@@ -162,17 +121,32 @@ class PromptStump(Stump):
             self.prompts = prompts
             self.meta = metadata
 
-        # set value (calls self.predict)
+        # set value (calls self.predict, which uses self.prompt)
         self._set_value_acc_samples(X_text, y)
 
         return self
+
+    def __getstate__(self):
+        """Get the stump but prevent certain attributes from being pickled.
+
+        See also https://stackoverflow.com/a/54139237/2287177
+        """
+        state = self.__dict__.copy()
+        # Don't pickle big things
+        if "model" in state:
+            del state["model"]
+        if "tokenizer" in state:
+            del state["tokenizer"]
+        if "feature_names" in state:
+            del state["feature_names"]
+        return state
 
     def predict(self, X_text: List[str]) -> np.ndarray[int]:
         preds_proba = self.predict_proba(X_text)
         return np.argmax(preds_proba, axis=1)
 
     def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
-        target_strs = list(self._get_verbalizer().values())
+        target_strs = list(self.verbalizer.values())
 
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
@@ -261,14 +235,22 @@ class PromptStump(Stump):
         """Get first token id in prompt"""
         return self.tokenizer(prompt)["input_ids"][0]
 
-    def _get_verbalizer(self):
-        if hasattr(self.args, "verbalizer") and self.args.verbalizer is not None:
-            return self.args.verbalizer
-        else:
-            return {0: " Negative.", 1: " Positive."}
-
     def __str__(self):
         return f"PromptStump(val={self.value_mean:0.2f} n={np.sum(self.n_samples)} prompt={self.prompt})"
 
     def get_str_simple(self):
         return self.prompt
+
+    def _set_value_acc_samples(self, X_text, y):
+        """Set value and accuracy of stump."""
+        idxs_right = self.predict(X_text).astype(bool)
+        n_right = idxs_right.sum()
+        if n_right == 0 or n_right == y.size:
+            self.failed_to_split = True
+            return
+        else:
+            self.failed_to_split = False
+        self.value = [np.mean(y[~idxs_right]), np.mean(y[idxs_right])]
+        self.value_mean = np.mean(y)
+        self.n_samples = [y.size - idxs_right.sum(), idxs_right.sum()]
+        self.acc = accuracy_score(y, 1 * idxs_right)

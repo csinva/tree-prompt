@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import imodels
 import imodelsx.util
-from tprompt.stump import PromptStump, Stump
+from tprompt.stump import PromptStump
 import tprompt.data
 import logging
 import warnings
@@ -32,9 +32,7 @@ class Tree:
             Maximum depth of the tree.
         split_strategy: str
             'manual' - use passed prompts in args.prompts_list
-            'iprompt' - use prompted language model to split
-            'cart' - use cart to split
-            'linear' - use linear to split
+            'iprompt' - use iprompt to split
         verbose: bool
         tokenizer
         assert_checks: bool
@@ -87,12 +85,11 @@ class Tree:
             checkpoint=self.checkpoint,
             checkpoint_prompting=self.checkpoint_prompting,
         )
-        stump_class = PromptStump
 
         # fit root stump
         # if the initial feature puts no points into a leaf,
         # the value will end up as NaN
-        stump = stump_class(**stump_kwargs).fit(
+        stump = PromptStump(**stump_kwargs).fit(
             X_text=X_text, y=y, feature_names=self.feature_names, X=X
         )
         stump.idxs = np.ones(X.shape[0], dtype=bool)
@@ -131,7 +128,7 @@ class Tree:
                         and len(np.unique(y[idxs_child])) > 1
                     ):
                         # fit a potential child stump
-                        stump_child = stump_class(**stump_kwargs).fit(
+                        stump_child = PromptStump(**stump_kwargs).fit(
                             X_text=X_text[idxs_child],
                             y=y[idxs_child],
                             feature_names=self.feature_names,
@@ -218,7 +215,7 @@ class Tree:
         s = f"> Tree(max_depth={self.max_depth} split_strategy={self.split_strategy})\n> ------------------------------------------------------\n"
         return s + self.viz_tree()
 
-    def viz_tree(self, stump: Stump = None, depth: int = 0, s: str = "") -> str:
+    def viz_tree(self, stump: PromptStump= None, depth: int = 0, s: str = "") -> str:
         if stump is None:
             stump = self.root_
         s += "   " * depth + str(stump) + "\n"
@@ -240,7 +237,7 @@ class Tree:
             )
         return s
 
-    def _set_prompts_list(self, stump: Stump) -> List[str]:
+    def _set_prompts_list(self, stump: PromptStump) -> List[str]:
         self.prompts_list.append(stump.prompt)
         if stump.child_left:
             self._set_prompts_list(stump.child_left)
