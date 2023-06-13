@@ -170,7 +170,6 @@ if __name__ == '__main__':
     # set seed
     np.random.seed(args.seed)
     random.seed(args.seed)
-    # torch.manual_seed(args.seed)
 
     # load text data
     X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(

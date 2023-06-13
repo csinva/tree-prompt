@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import imodels
 import imodelsx.util
-from tprompt.stump import KeywordStump, PromptStump, Stump
+from tprompt.stump import PromptStump, Stump
 import tprompt.data
 import logging
 import warnings
@@ -87,10 +87,7 @@ class Tree:
             checkpoint=self.checkpoint,
             checkpoint_prompting=self.checkpoint_prompting,
         )
-        if self.split_strategy in ["iprompt"]:
-            stump_class = PromptStump
-        else:
-            stump_class = KeywordStump
+        stump_class = PromptStump
 
         # fit root stump
         # if the initial feature puts no points into a leaf,
@@ -152,10 +149,6 @@ class Tree:
                             else:
                                 stump.child_right = stump_child
                             stumps_queue_new.append(stump_child)
-                            if self.verbose and isinstance(stump_child, KeywordStump):
-                                logging.debug(
-                                    f"\t\t {stump.stump_keywords} {stump.pos_or_neg}"
-                                )
                             i += 1
 
                             ######################### checks ###########################
