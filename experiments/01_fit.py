@@ -115,7 +115,7 @@ def add_main_args(parser):
                         would use example demonstrations from training set.''')
     parser.add_argument('--template_data_demonstrations', type=str,
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
-    parser.add_argument('--num_data_demonstrations_per_class', type=int, default=-1, help='If prompt source is data_demonstrations, how many to include per class')
+    parser.add_argument('--num_data_demonstrations_per_class', type=int, default=1, help='If prompt source is data_demonstrations, how many to include per class')
     parser.add_argument('--truncate_example_length', type=int, default=3000,
                         help='Max length of characters for each input')
     parser.add_argument('--binary_classification', type=int, default=1, help='Whether to truncate dataset to binary classification')
@@ -186,9 +186,6 @@ if __name__ == '__main__':
 
 
     # get converted tabular data
-    X_train, X_test, feature_names = \
-        tprompt.data.convert_text_data_to_counts_array(
-            X_train_text, X_test_text, ngrams=2)
     if args.model_name.startswith('manual'):
         X_train, X_test, feature_names = \
             tprompt.prompts.engineer_prompt_features(
@@ -201,6 +198,11 @@ if __name__ == '__main__':
             X_train = enc.fit_transform(X_train)
             X_test = enc.transform(X_test)
             feature_names = enc.get_feature_names_out(feature_names)
+    else:
+        X_train, X_test, feature_names = \
+            tprompt.data.convert_text_data_to_counts_array(
+                X_train_text, X_test_text, ngrams=2)
+
         
     # split (could subsample here too)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
