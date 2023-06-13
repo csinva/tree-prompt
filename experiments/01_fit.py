@@ -19,43 +19,10 @@ import os
 import tprompt.tree
 import tprompt.data
 import tprompt.prompts
-import tprompt.ensemble
+import tprompt.model
 import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
-
-def _get_model(model_name: str, num_prompts: int, seed: int, args=None):
-    if model_name == 'tprompt':
-        return tprompt.tree.Tree(
-            args=args,
-            max_depth=args.max_depth,
-            split_strategy=args.split_strategy,
-            verbose=args.use_verbose,
-            checkpoint=args.checkpoint,
-            checkpoint_prompting=args.checkpoint_prompting,
-        )
-    elif model_name == 'manual_tree':
-        return sklearn.tree.DecisionTreeClassifier(
-            max_leaf_nodes=num_prompts + 1,
-            random_state=seed,
-        )
-    elif model_name == 'manual_ensemble':
-        return tprompt.ensemble.IdentityEnsembleClassifier(
-            n_estimators=num_prompts,
-        )
-    elif model_name == 'manual_boosting':
-        return tprompt.ensemble.IdentityEnsembleClassifier(
-            n_estimators=num_prompts,
-            boosting=True,
-        )
-    elif model_name == 'manual_gbdt':
-        return sklearn.ensemble.GradientBoostingClassifier(
-            random_state=seed,
-        )
-    elif model_name == 'manual_rf':
-        return sklearn.ensemble.RandomForestClassifier(
-            random_state=seed,
-        )
 
 def evaluate_model(model, X_train, X_cv, X_test,
                    X_train_text, X_cv_text, X_test_text,
@@ -225,7 +192,9 @@ if __name__ == '__main__':
         X_train, X_test, feature_names = \
             tprompt.prompts.engineer_prompt_features(
                 args, prompts, X_train_text, X_test_text,
-                y_train, y_test, args.checkpoint, args.verbalizer)
+                y_train, y_test, args.checkpoint, args.verbalizer,
+                cache_prompt_features_dir=args.cache_prompt_features_dir,
+            )
 
         # apply onehot encoding to prompt features if more than 3 classes
         # (FPB 3 classes are in order so let them be)
@@ -241,7 +210,7 @@ if __name__ == '__main__':
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
 
     # get model
-    model = _get_model(args.model_name, args.num_prompts, args.seed, args=args)
+    model = tprompt.model._get_model(args.model_name, args.num_prompts, args.seed, args=args)
 
     # fit the model
     fit_parameters = inspect.signature(model.fit).parameters.keys()
@@ -260,7 +229,6 @@ if __name__ == '__main__':
     r['save_dir_unique'] = save_dir_unique
     cache_save_utils.save_json(
         args=args, save_dir=save_dir_unique, fname='params.json', r=r)
-    
 
     # evaluate
     r = evaluate_model(

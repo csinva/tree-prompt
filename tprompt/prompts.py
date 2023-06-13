@@ -311,23 +311,15 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
         return prompts
 
 
-def _calc_features_single_prompt(X_train_text, X_test_text, y_train, y_test, m, p):
+def _calc_features_single_prompt(X, y, m, p):
     """Calculate features with a single prompt (results get cached)
-    preds_train: np.ndarray[int] of shape (n_train,)
+    preds: np.ndarray[int] of shape (X.shape[0],)
         If multiclass, each int takes value 0, 1, ..., n_classes - 1 based on the verbalizer
     """
     m.prompt = p
-    acc_baseline = max(y_train.mean(), 1 - y_train.mean())
-    preds_train = m.predict(X_train_text)
-    acc_train = np.mean(preds_train == y_train)
-
-    preds_test = m.predict(X_test_text)
-    acc_test = np.mean(preds_test == y_test)
-    logging.info(
-        f"prompt={p[:100]}... train:{acc_train:0.3f} baseline:{acc_baseline:0.3f} test:{acc_test:0.3f}"
-    )
-
-    return preds_train, preds_test, acc_train
+    preds = m.predict(X)
+    acc = np.mean(preds == y)
+    return preds, acc
 
 
 def engineer_prompt_features(
@@ -339,16 +331,15 @@ def engineer_prompt_features(
     y_test,
     checkpoint: str,
     verbalizer: Dict[int, str],
-    # cache_dir=join(path_to_repo, 'results', 'cache_prompt_features'),
+    cache_prompt_features_dir=join(path_to_repo, 'results', 'cache_prompt_features'),
 ):
-    logging.info("calculating prompt features with " + args.checkpoint)
+    logging.info("calculating prompt features with " + checkpoint)
 
-    # uses args.verbalizer
-    tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
-    model = load_lm(checkpoint=args.checkpoint, tokenizer=tokenizer).to("cuda")
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+    model = load_lm(checkpoint=checkpoint, tokenizer=tokenizer).to("cuda")
     m = tprompt.stump.PromptStump(
         args=args,
-        split_strategy="manual",  # 'manual' specifies that we use args.prompt
+        split_strategy="manual",  # 'manual' specifies that we use m.prompt instead of autoprompting
         model=model,
         checkpoint=checkpoint,
         verbalizer=verbalizer,
@@ -361,7 +352,7 @@ def engineer_prompt_features(
     accs_train = np.zeros(len(prompts))
 
     # compute features for prompts
-    os.makedirs(args.cache_prompt_features_dir, exist_ok=True)
+    os.makedirs(cache_prompt_features_dir, exist_ok=True)
     for i, p in enumerate(tqdm(prompts)):
         # set up name of file for saving based on argument values
         arg_names_cache = [
@@ -375,7 +366,7 @@ def engineer_prompt_features(
         args_dict_cache = {k: v for k, v in args._get_kwargs() if k in arg_names_cache}
         args_dict_cache["prompt"] = p
         save_dir_unique_hash = sha256(args_dict_cache)
-        cache_file = join(args.cache_prompt_features_dir, f"{save_dir_unique_hash}.pkl")
+        cache_file = join(cache_prompt_features_dir, f"{save_dir_unique_hash}.pkl")
 
         # load from cache if possible
         loaded_from_cache = False
@@ -389,10 +380,10 @@ def engineer_prompt_features(
 
         # actually compute prompt features (integer valued, 0, ..., n_classes - 1)
         if not loaded_from_cache:
-            preds_train, preds_test, acc_train = _calc_features_single_prompt(
-                X_train_text, X_test_text, y_train, y_test, m, p
-            )
+            preds_train, acc_train = _calc_features_single_prompt(X_train_text, y_train, m, p)
+            preds_test, _ = _calc_features_single_prompt(X_test_text, y_test, m, p)
             joblib.dump((preds_train, preds_test, acc_train), cache_file)
+
         prompt_features_train[:, i] = preds_train
         prompt_features_test[:, i] = preds_test
         accs_train[i] = acc_train
