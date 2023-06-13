@@ -56,17 +56,9 @@ class Tree:
             self.tokenizer = tokenizer
         self.prompts_list = []
 
-    def fit(self, X_text: List[str] = None, y=None, feature_names=None, X=None):
-        if X is None and X_text:
-            warnings.warn(
-                "X is not passed, defaulting to generating unigrams from X_text"
-            )
-            X, _, feature_names = tprompt.data.convert_text_data_to_counts_array(
-                X_text, [], ngrams=1
-            )
+    def fit(self, X_text: List[str] = None, y=None, feature_names=None):
 
         # check and set some attributes
-        X, y, _ = imodels.util.arguments.check_fit_arguments(self, X, y, feature_names)
         if isinstance(X_text, list):
             X_text = np.array(X_text).flatten()
         self.feature_names = feature_names
@@ -90,9 +82,9 @@ class Tree:
         # if the initial feature puts no points into a leaf,
         # the value will end up as NaN
         stump = PromptStump(**stump_kwargs).fit(
-            X_text=X_text, y=y, feature_names=self.feature_names, X=X
+            X_text=X_text, y=y, feature_names=self.feature_names
         )
-        stump.idxs = np.ones(X.shape[0], dtype=bool)
+        stump.idxs = np.ones(len(X_text), dtype=bool)
         self.root_ = stump
 
         # recursively fit stumps and store as a decision tree
@@ -132,7 +124,6 @@ class Tree:
                             X_text=X_text[idxs_child],
                             y=y[idxs_child],
                             feature_names=self.feature_names,
-                            X=X[idxs_child],
                         )
 
                         # make sure the stump actually found a non-trivial split

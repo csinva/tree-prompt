@@ -29,8 +29,8 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             ('gpt2', 1),
-            # ('EleutherAI/gpt-j-6B', 2),
-            ('EleutherAI/gpt-j-6B', 1),  
+            ('EleutherAI/gpt-j-6B', 2),
+            # ('EleutherAI/gpt-j-6B', 1),  
         ]
 
         for (dataset_name, binary_classification) in [

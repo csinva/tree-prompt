@@ -72,10 +72,9 @@ class PromptStump:
         if self.verbose:
             logging.info(f"Loading model {self.checkpoint}")
 
-    def fit(self, X_text: List[str], y, feature_names=None, X=None):
+    def fit(self, X_text: List[str], y, feature_names=None):
         # check input and set some attributes
         assert len(np.unique(y)) > 1, "y should have more than 1 unique value"
-        X, y, _ = imodels.util.arguments.check_fit_arguments(self, X, y, feature_names)
         self.feature_names = feature_names
         if isinstance(self.feature_names, list):
             self.feature_names = np.array(self.feature_names).flatten()

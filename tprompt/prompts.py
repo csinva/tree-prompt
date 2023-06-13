@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 from transformers import AutoTokenizer
 from tprompt.utils import load_lm
 import numpy as np
@@ -337,6 +337,8 @@ def engineer_prompt_features(
     X_test_text,
     y_train,
     y_test,
+    checkpoint: str,
+    verbalizer: Dict[int, str],
     # cache_dir=join(path_to_repo, 'results', 'cache_prompt_features'),
 ):
     logging.info("calculating prompt features with " + args.checkpoint)
@@ -348,8 +350,8 @@ def engineer_prompt_features(
         args=args,
         split_strategy="manual",  # 'manual' specifies that we use args.prompt
         model=model,
-        checkpoint=args.checkpoint,
-        verbalizer=args.verbalizer,
+        checkpoint=checkpoint,
+        verbalizer=verbalizer,
     )
 
     # test different manual stumps

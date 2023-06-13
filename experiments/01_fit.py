@@ -24,6 +24,39 @@ import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
 
+def _get_model(model_name: str, num_prompts: int, seed: int, args=None):
+    if model_name == 'tprompt':
+        return tprompt.tree.Tree(
+            args=args,
+            max_depth=args.max_depth,
+            split_strategy=args.split_strategy,
+            verbose=args.use_verbose,
+            checkpoint=args.checkpoint,
+            checkpoint_prompting=args.checkpoint_prompting,
+        )
+    elif model_name == 'manual_tree':
+        return sklearn.tree.DecisionTreeClassifier(
+            max_leaf_nodes=num_prompts + 1,
+            random_state=seed,
+        )
+    elif model_name == 'manual_ensemble':
+        return tprompt.ensemble.IdentityEnsembleClassifier(
+            n_estimators=num_prompts,
+        )
+    elif model_name == 'manual_boosting':
+        return tprompt.ensemble.IdentityEnsembleClassifier(
+            n_estimators=num_prompts,
+            boosting=True,
+        )
+    elif model_name == 'manual_gbdt':
+        return sklearn.ensemble.GradientBoostingClassifier(
+            random_state=seed,
+        )
+    elif model_name == 'manual_rf':
+        return sklearn.ensemble.RandomForestClassifier(
+            random_state=seed,
+        )
+
 def evaluate_model(model, X_train, X_cv, X_test,
                    X_train_text, X_cv_text, X_test_text,
                    y_train, y_cv, y_test, r):
@@ -184,14 +217,15 @@ if __name__ == '__main__':
         # print('examples', X_train_text[:30])
 
 
-    # get converted tabular data
+    # convert text data to features
     if args.model_name.startswith('manual'):
         prompts = tprompt.prompts.get_prompts(
-            args, X_train_text, y_train, args.verbalizer, seed=1
-        )  # note, not passing seed here!
+            args, X_train_text, y_train, args.verbalizer, seed=1 # note, not passing seed here!
+        )  
         X_train, X_test, feature_names = \
             tprompt.prompts.engineer_prompt_features(
-                args, prompts, X_train_text, X_test_text, y_train, y_test)
+                args, prompts, X_train_text, X_test_text,
+                y_train, y_test, args.checkpoint, args.verbalizer)
 
         # apply onehot encoding to prompt features if more than 3 classes
         # (FPB 3 classes are in order so let them be)
@@ -200,48 +234,25 @@ if __name__ == '__main__':
             X_train = enc.fit_transform(X_train)
             X_test = enc.transform(X_test)
             feature_names = enc.get_feature_names_out(feature_names)
-    else:
-        X_train, X_test, feature_names = \
-            tprompt.data.convert_text_data_to_counts_array(
-                X_train_text, X_test_text, ngrams=2)
 
         
     # split (could subsample here too)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
 
-    # load model
-    if args.model_name == 'tprompt':
-        model = tprompt.tree.Tree(
-            args=args,
-            max_depth=args.max_depth,
-            split_strategy=args.split_strategy,
-            verbose=args.use_verbose,
-            checkpoint=args.checkpoint,
-            checkpoint_prompting=args.checkpoint_prompting,
-        )
-    elif args.model_name == 'manual_tree':
-        model = sklearn.tree.DecisionTreeClassifier(
-            max_leaf_nodes=args.num_prompts + 1,
-            random_state=args.seed,
-        )
-    elif args.model_name == 'manual_ensemble':
-        model = tprompt.ensemble.IdentityEnsembleClassifier(
-            n_estimators=args.num_prompts,
-        )
-    elif args.model_name == 'manual_boosting':
-        model = tprompt.ensemble.IdentityEnsembleClassifier(
-            n_estimators=args.num_prompts,
-            boosting=True,
-        )
-    elif args.model_name == 'manual_gbdt':
-        model = sklearn.ensemble.GradientBoostingClassifier(
-            random_state=args.seed,
-        )
-    elif args.model_name == 'manual_rf':
-        model = sklearn.ensemble.RandomForestClassifier(
-            random_state=args.seed,
-        )
+    # get model
+    model = _get_model(args.model_name, args.num_prompts, args.seed, args=args)
+
+    # fit the model
+    fit_parameters = inspect.signature(model.fit).parameters.keys()
+    kwargs = {}
+    if 'feature_names' in fit_parameters and feature_names is not None:
+        kwargs['feature_names'] = feature_names
+    if 'X_text' in fit_parameters: # Tree class only uses argument "X_text"
+        kwargs['X_text'] = X_train_text
+    if 'X' in fit_parameters: # sklearn models only use argument "X"
+        kwargs['X'] = X_train
+    model.fit(y=y_train, **kwargs)
 
     # set up saving dictionary + save params file
     r = defaultdict(list)
@@ -249,15 +260,7 @@ if __name__ == '__main__':
     r['save_dir_unique'] = save_dir_unique
     cache_save_utils.save_json(
         args=args, save_dir=save_dir_unique, fname='params.json', r=r)
-
-    # fit the model
-    fit_parameters = inspect.signature(model.fit).parameters.keys()
-    kwargs = {}
-    if 'feature_names' in fit_parameters and feature_names is not None:
-        kwargs['feature_names'] = feature_names
-    if 'X_text' in fit_parameters:
-        kwargs['X_text'] = X_train_text
-    model.fit(X=X_train, y=y_train, **kwargs)
+    
 
     # evaluate
     r = evaluate_model(
@@ -271,11 +274,6 @@ if __name__ == '__main__':
     if hasattr(model, 'prompts_list'):
         r['prompts_list'] = model.prompts_list
         r['prompt'] = r['prompts_list'][0]
-    # if isinstance(model, sklearn.tree.DecisionTreeClassifier):
-        # r['str_tree'] = sklearn.tree.export_text(
-            # model, feature_names=feature_names)
-    # else:
-        # r['str_tree'] = str(model)
     r['feature_names'] = feature_names
     pkl.dump(r, open(join(save_dir_unique, 'results.pkl'), 'wb'))
     pkl.dump(model, open(join(save_dir_unique, 'model.pkl'), 'wb'))
