@@ -15,17 +15,16 @@ params_shared_dict = {
     'seed': [1],
     'save_dir': [join(save_dir, 'tree-prompt', 'mar18')],
     'cache_prompt_features_dir': ['/home/chansingh/mntv1/tree-prompt/cache_prompt_features'],
-    'num_data_demonstrations_per_class': [5], # 1, 5
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
     ('dataset_name', 'binary_classification', 
      'model_name', 'checkpoint', 'batch_size', 'num_prompts',
-     'prompt_source', 'verbalizer_num'): [
+     'prompt_source', 'verbalizer_num', 'num_data_demonstrations_per_class'): [
         (dataset_name, binary_classification, 
          model_name, checkpoint, batch_size, num_prompts,
-         prompt_source, verbalizer_num)
+         prompt_source, verbalizer_num, num_data_demonstrations_per_class)
 
         for (checkpoint, batch_size) in [
             ('gpt2', 1),
@@ -48,10 +47,12 @@ params_coupled_dict = {
         ] + [('manual_gbdt', 40), ('manual_rf', 40)]
         
     
-        for (prompt_source, verbalizer_num) in [
-            ('manual', 0),
-            ('data_demonstrations', 0),
-            ('data_demonstrations', 1)
+        for (prompt_source, verbalizer_num, num_data_demonstrations_per_class) in [
+            ('manual', 0, 1),
+            ('data_demonstrations', 0, 1),
+            ('data_demonstrations', 1, 1),
+            ('data_demonstrations', 0, 5),
+            ('data_demonstrations', 1, 5),
         ]
 
     ],
