@@ -209,12 +209,15 @@ if __name__ == '__main__':
 
         
     # split train into train and cv
-    if args.subsample_frac > 0 and args.subsample_frac <= 1:
-        cv_size = 1 - args.subsample_frac
+    if args.subsample_frac == 1:
+        X_cv_text, X_cv, y_cv = None, None, None
     else:
-        cv_size = 0.33
-    X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
-        X_train, X_train_text, y_train, test_size=cv_size, random_state=args.seed)
+        if args.subsample_frac > 0 and args.subsample_frac < 1:
+            cv_size = 1 - args.subsample_frac
+        else:
+            cv_size = 0.33
+        X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
+            X_train, X_train_text, y_train, test_size=cv_size, random_state=args.seed)
     
 
     # get model

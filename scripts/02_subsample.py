@@ -12,41 +12,38 @@ save_dir = '/home/chansingh/mntv1'
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
-    'seed': [1],
+    'seed': [1, 2, 3],
     'save_dir': [join(save_dir, 'tree-prompt', 'jun15_subsample')],
     'cache_prompt_features_dir': ['/home/chansingh/mntv1/tree-prompt/cache_prompt_features'],
     'num_data_demonstrations_per_class': [1],
     'subsample_frac': [0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0],
+    'num_prompts': [10],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
     ('dataset_name', 'binary_classification', 
-     'model_name', 'checkpoint', 'batch_size', 'num_prompts',
+     'model_name', 'checkpoint', 'batch_size',
      'prompt_source', 'verbalizer_num'): [
         (dataset_name, binary_classification, 
-         model_name, checkpoint, batch_size, num_prompts,
+         model_name, checkpoint, batch_size,
          prompt_source, verbalizer_num)
 
         for (checkpoint, batch_size) in [
             ('gpt2', 1),
-            ('EleutherAI/gpt-j-6B', 2),
+            # ('EleutherAI/gpt-j-6B', 2),
             # ('EleutherAI/gpt-j-6B', 1),  
         ]
 
         for (dataset_name, binary_classification) in [
             ('rotten_tomatoes', 1),
             ('sst2', 1),
-            # ('imdb', 1),
+            ('imdb', 1),
             ('financial_phrasebank', 0),
             ('emotion', 0),
         ]
 
-        for (model_name, num_prompts) in [
-            (mod_name, num_prompt)
-            for mod_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-            for num_prompt in [1, 3, 5, 7, 10, 15, 25, 40]
-        ] + [('manual_gbdt', 40), ('manual_rf', 40)]
+        for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting', 'manual_gbdt', 'manual_rf']
         
     
         for (prompt_source, verbalizer_num) in [
@@ -82,7 +79,7 @@ submit_utils.run_args_list(
     # n_cpus=4,
     # gpu_ids = [0, 1, 2, 3],
     # gpu_ids = [0],
-    # reverse=True,
+    reverse=True,
     n_cpus=16,
     shuffle=False,
 )
