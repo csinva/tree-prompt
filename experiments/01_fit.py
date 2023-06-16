@@ -9,7 +9,6 @@ import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, balanced_accuracy_score, brier_score_loss
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
-import sklearn.ensemble
 import sklearn.tree
 import pickle as pkl
 import imodelsx.data
@@ -19,7 +18,7 @@ import os
 import tprompt.tree
 import tprompt.data
 import tprompt.prompts
-import tprompt.ensemble
+import tprompt.model
 import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
@@ -115,6 +114,7 @@ def add_main_args(parser):
                         would use example demonstrations from training set.''')
     parser.add_argument('--template_data_demonstrations', type=str,
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
+    parser.add_argument('--num_data_demonstrations_per_class', type=int, default=1, help='If prompt source is data_demonstrations, how many to include per class')
     parser.add_argument('--truncate_example_length', type=int, default=3000,
                         help='Max length of characters for each input')
     parser.add_argument('--binary_classification', type=int, default=1, help='Whether to truncate dataset to binary classification')
@@ -169,7 +169,6 @@ if __name__ == '__main__':
     # set seed
     np.random.seed(args.seed)
     random.seed(args.seed)
-    # torch.manual_seed(args.seed)
 
     # load text data
     X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
@@ -184,14 +183,17 @@ if __name__ == '__main__':
         # print('examples', X_train_text[:30])
 
 
-    # get converted tabular data
-    X_train, X_test, feature_names = \
-        tprompt.data.convert_text_data_to_counts_array(
-            X_train_text, X_test_text, ngrams=2)
+    # convert text data to features
     if args.model_name.startswith('manual'):
+        prompts = tprompt.prompts.get_prompts(
+            args, X_train_text, y_train, args.verbalizer, seed=1 # note, not passing seed here!
+        )  
         X_train, X_test, feature_names = \
-            tprompt.prompts.engineer_prompt_features(
-                args, X_train_text, X_test_text, y_train, y_test)
+            tprompt.prompts.calc_prompt_features(
+                args, prompts, X_train_text, X_test_text,
+                y_train, y_test, args.checkpoint, args.verbalizer,
+                cache_prompt_features_dir=args.cache_prompt_features_dir,
+            )
 
         # apply onehot encoding to prompt features if more than 3 classes
         # (FPB 3 classes are in order so let them be)
@@ -200,43 +202,25 @@ if __name__ == '__main__':
             X_train = enc.fit_transform(X_train)
             X_test = enc.transform(X_test)
             feature_names = enc.get_feature_names_out(feature_names)
+
         
     # split (could subsample here too)
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
         X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
 
-    # load model
-    if args.model_name == 'tprompt':
-        model = tprompt.tree.Tree(
-            args=args,
-            max_depth=args.max_depth,
-            split_strategy=args.split_strategy,
-            verbose=args.use_verbose,
-            checkpoint=args.checkpoint,
-            checkpoint_prompting=args.checkpoint_prompting,
-        )
-    elif args.model_name == 'manual_tree':
-        model = sklearn.tree.DecisionTreeClassifier(
-            max_leaf_nodes=args.num_prompts + 1,
-            random_state=args.seed,
-        )
-    elif args.model_name == 'manual_ensemble':
-        model = tprompt.ensemble.IdentityEnsembleClassifier(
-            n_estimators=args.num_prompts,
-        )
-    elif args.model_name == 'manual_boosting':
-        model = tprompt.ensemble.IdentityEnsembleClassifier(
-            n_estimators=args.num_prompts,
-            boosting=True,
-        )
-    elif args.model_name == 'manual_gbdt':
-        model = sklearn.ensemble.GradientBoostingClassifier(
-            random_state=args.seed,
-        )
-    elif args.model_name == 'manual_rf':
-        model = sklearn.ensemble.RandomForestClassifier(
-            random_state=args.seed,
-        )
+    # get model
+    model = tprompt.model._get_model(args.model_name, args.num_prompts, args.seed, args=args)
+
+    # fit the model
+    fit_parameters = inspect.signature(model.fit).parameters.keys()
+    kwargs = {}
+    if 'feature_names' in fit_parameters and feature_names is not None:
+        kwargs['feature_names'] = feature_names
+    if 'X_text' in fit_parameters: # Tree class only uses argument "X_text"
+        kwargs['X_text'] = X_train_text
+    if 'X' in fit_parameters: # sklearn models only use argument "X"
+        kwargs['X'] = X_train
+    model.fit(y=y_train, **kwargs)
 
     # set up saving dictionary + save params file
     r = defaultdict(list)
@@ -244,15 +228,6 @@ if __name__ == '__main__':
     r['save_dir_unique'] = save_dir_unique
     cache_save_utils.save_json(
         args=args, save_dir=save_dir_unique, fname='params.json', r=r)
-
-    # fit the model
-    fit_parameters = inspect.signature(model.fit).parameters.keys()
-    kwargs = {}
-    if 'feature_names' in fit_parameters and feature_names is not None:
-        kwargs['feature_names'] = feature_names
-    if 'X_text' in fit_parameters:
-        kwargs['X_text'] = X_train_text
-    model.fit(X=X_train, y=y_train, **kwargs)
 
     # evaluate
     r = evaluate_model(
@@ -266,11 +241,6 @@ if __name__ == '__main__':
     if hasattr(model, 'prompts_list'):
         r['prompts_list'] = model.prompts_list
         r['prompt'] = r['prompts_list'][0]
-    # if isinstance(model, sklearn.tree.DecisionTreeClassifier):
-        # r['str_tree'] = sklearn.tree.export_text(
-            # model, feature_names=feature_names)
-    # else:
-        # r['str_tree'] = str(model)
     r['feature_names'] = feature_names
     pkl.dump(r, open(join(save_dir_unique, 'results.pkl'), 'wb'))
     pkl.dump(model, open(join(save_dir_unique, 'model.pkl'), 'wb'))

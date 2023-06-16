@@ -51,20 +51,20 @@ DSETS_RENAME_DICT_ABBR = {
 MODELS_RENAME_DICT = {
     'decision_tree': 'CART',
     'manual_tree': 'TreePrompt',
-    'manual_ensemble': 'Ensemble (best-first)',
-    'manual_boosting': 'Ensemble (boosting)',
+    'manual_ensemble': 'Ensemble (Greedy)',
+    'manual_boosting': 'Ensemble (Boosting)',
     'manual_gbdt': 'TreePrompt (GBDT)',
     'manual_rf': 'TreePrompt (RF)',
 }
 
 CHECKPOINTS_RENAME_DICT = {
-    'EleutherAI/gpt-j-6B': 'GPT-J (6B)',
-    'gpt2': 'GPT-2 (117M)',
+    'EleutherAI/gpt-j-6B': 'GPT-J',
+    'gpt2': 'GPT-2',
 }
 
 VERBS_RENAME_DICT = {
-    0: 'class names',
-    1: 'yes/no',
+    0: 'Class names',
+    1: 'Yes/no',
 }
 
 XLAB = {
@@ -81,6 +81,12 @@ COLORS = {
     'manual_gbdt': 'C0',
     'manual_rf': 'lightcoral',
 }
+
+SOURCE_RENAME_DICT = {
+    'manual': 'Human',
+    'data_demonstrations': 'Demonstrations',
+}
+
 COLORS_RENAMED_DICT = {
     MODELS_RENAME_DICT[k]: c for k, c in COLORS.items()
 }

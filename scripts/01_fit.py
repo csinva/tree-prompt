@@ -13,12 +13,9 @@ save_dir = '/home/chansingh/mntv1'
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    # 'save_dir': [join(save_dir, 'tree-prompt', 'feb25')],
     'save_dir': [join(save_dir, 'tree-prompt', 'mar18')],
-    # 'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
-    # 'dataset_name': ['rotten_tomatoes', 'sst2'], #, 'imdb'],
-    # 'verbalizer_num': [0], # [0, 1],
     'cache_prompt_features_dir': ['/home/chansingh/mntv1/tree-prompt/cache_prompt_features'],
+    'num_data_demonstrations_per_class': [5], # 1, 5
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -31,9 +28,9 @@ params_coupled_dict = {
          prompt_source, verbalizer_num)
 
         for (checkpoint, batch_size) in [
-            ('gpt2', 4),
-            # ('EleutherAI/gpt-j-6B', 2),
-            ('EleutherAI/gpt-j-6B', 1),  
+            ('gpt2', 1),
+            ('EleutherAI/gpt-j-6B', 2),
+            # ('EleutherAI/gpt-j-6B', 1),  
         ]
 
         for (dataset_name, binary_classification) in [
@@ -92,12 +89,12 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
     # n_cpus=16,
-    # gpu_ids = get_gpu_ids(),
+    gpu_ids = get_gpu_ids(),
     # gpu_ids=[0, 1],
     # n_cpus=4,
     # gpu_ids = [0, 1, 2, 3],
     # gpu_ids = [0],
     # reverse=True,
-    n_cpus=4,
+    # n_cpus=4,
     shuffle=False,
 )
