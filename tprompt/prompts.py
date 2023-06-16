@@ -337,14 +337,7 @@ def calc_prompt_features(
 
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
     model = load_lm(checkpoint=checkpoint, tokenizer=tokenizer).to("cuda")
-    m = tprompt.stump.PromptStump(
-        args=args,
-        split_strategy="manual",  # 'manual' specifies that we use m.prompt instead of autoprompting
-        model=model,
-        checkpoint=checkpoint,
-        verbalizer=verbalizer,
-        batch_size=args.batch_size,
-    )
+    m = None # don't load model until checking for cache to speed things up
 
     # test different manual stumps
     # print('prompts', prompts)
@@ -381,6 +374,15 @@ def calc_prompt_features(
 
         # actually compute prompt features (integer valued, 0, ..., n_classes - 1)
         if not loaded_from_cache:
+            if m is None:
+                m = tprompt.stump.PromptStump(
+                    args=args,
+                    split_strategy="manual",  # 'manual' specifies that we use m.prompt instead of autoprompting
+                    model=model,
+                    checkpoint=checkpoint,
+                    verbalizer=verbalizer,
+                    batch_size=args.batch_size,
+                )
             preds_train, acc_train = _calc_features_single_prompt(X_train_text, y_train, m, p)
             preds_test, _ = _calc_features_single_prompt(X_test_text, y_test, m, p)
             joblib.dump((preds_train, preds_test, acc_train), cache_file)

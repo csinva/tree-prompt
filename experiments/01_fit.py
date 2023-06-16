@@ -46,28 +46,31 @@ def evaluate_model(model, X_train, X_cv, X_test,
                                              [(X_train_text, X_train, y_train),
                                              (X_cv_text, X_cv, y_cv),
                                              (X_test_text, X_test, y_test)]):
-        # metrics discrete
-        predict_parameters = inspect.signature(model.predict).parameters.keys()
-        if 'X_text' in predict_parameters:
-            y_pred_ = model.predict(X_text=X_text_).astype(int)
-        else:
-            y_pred_ = model.predict(X_)
-        for metric_name, metric_fn in metrics.items():
-            r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_)
+        # sometimes cv split may be none
+        if X_text_ is not None:
 
-        # metrics proba
-        if hasattr(model, 'predict_proba'):
+            # metrics discrete
+            predict_parameters = inspect.signature(model.predict).parameters.keys()
             if 'X_text' in predict_parameters:
-                y_pred_proba_ = model.predict_proba(X_text=X_text_)
+                y_pred_ = model.predict(X_text=X_text_).astype(int)
             else:
-                y_pred_proba_ = model.predict_proba(X_)
-            if not multiclass:
-                y_pred_proba_ = y_pred_proba_[:, 1]
-                for metric_name, metric_fn in metrics_proba.items():
-                    r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
-            elif multiclass:
-                for metric_name, metric_fn in metrics_proba_multiclass.items():
-                    r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+                y_pred_ = model.predict(X_)
+            for metric_name, metric_fn in metrics.items():
+                r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_)
+
+            # metrics proba
+            if hasattr(model, 'predict_proba'):
+                if 'X_text' in predict_parameters:
+                    y_pred_proba_ = model.predict_proba(X_text=X_text_)
+                else:
+                    y_pred_proba_ = model.predict_proba(X_)
+                if not multiclass:
+                    y_pred_proba_ = y_pred_proba_[:, 1]
+                    for metric_name, metric_fn in metrics_proba.items():
+                        r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+                elif multiclass:
+                    for metric_name, metric_fn in metrics_proba_multiclass.items():
+                        r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
 
     return r
 
@@ -118,6 +121,7 @@ def add_main_args(parser):
     parser.add_argument('--truncate_example_length', type=int, default=3000,
                         help='Max length of characters for each input')
     parser.add_argument('--binary_classification', type=int, default=1, help='Whether to truncate dataset to binary classification')
+    parser.add_argument('--subsample_frac', type=float, default=-1, help='Amount to subsample the training data')
     return parser
 
 
@@ -204,9 +208,14 @@ if __name__ == '__main__':
             feature_names = enc.get_feature_names_out(feature_names)
 
         
-    # split (could subsample here too)
+    # split train into train and cv
+    if args.subsample_frac > 0 and args.subsample_frac <= 1:
+        cv_size = 1 - args.subsample_frac
+    else:
+        cv_size = 0.33
     X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
-        X_train, X_train_text, y_train, test_size=0.33, random_state=args.seed)
+        X_train, X_train_text, y_train, test_size=cv_size, random_state=args.seed)
+    
 
     # get model
     model = tprompt.model._get_model(args.model_name, args.num_prompts, args.seed, args=args)
