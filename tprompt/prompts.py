@@ -311,13 +311,16 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
         return prompts
 
 
-def _calc_features_single_prompt(X, y, m, p):
+def _calc_features_single_prompt(X, y, m, p, past_key_values=None):
     """Calculate features with a single prompt (results get cached)
     preds: np.ndarray[int] of shape (X.shape[0],)
         If multiclass, each int takes value 0, 1, ..., n_classes - 1 based on the verbalizer
     """
     m.prompt = p
-    preds = m.predict(X)
+    if past_key_values is not None:
+        preds = m.predict_with_cache(X, past_key_values)
+    else:
+        preds = m.predict(X)
     acc = np.mean(preds == y)
     return preds, acc
 
@@ -383,8 +386,13 @@ def calc_prompt_features(
                     verbalizer=verbalizer,
                     batch_size=args.batch_size,
                 )
-            preds_train, acc_train = _calc_features_single_prompt(X_train_text, y_train, m, p)
-            preds_test, _ = _calc_features_single_prompt(X_test_text, y_test, m, p)
+            #import pdb; pdb.set_trace()
+            past_key_values = None
+            if args.cache_prompt == 1:
+                m.prompt = p
+                past_key_values = m.calc_key_values(X_train_text)
+            preds_train, acc_train = _calc_features_single_prompt(X_train_text, y_train, m, p, past_key_values=past_key_values)
+            preds_test, _ = _calc_features_single_prompt(X_test_text, y_test, m, p, past_key_values=past_key_values)
             joblib.dump((preds_train, preds_test, acc_train), cache_file)
 
         prompt_features_train[:, i] = preds_train

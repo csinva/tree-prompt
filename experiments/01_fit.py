@@ -104,6 +104,8 @@ def add_main_args(parser):
                         default='iprompt', help='strategy to use to split each stump')
     parser.add_argument('--max_depth', type=int,
                         default=2, help='max depth of tree')
+    parser.add_argument('--cache_prompt', type=int,
+                        default=1, help='only for manual things or data demonstrations (not applied when model_name==tprompt)')
     parser.add_argument('--num_prompts', type=int,
                         default=1, help='only for manual things or data demonstrations (not applied when model_name==tprompt)')
     parser.add_argument('--checkpoint', type=str, default='EleutherAI/gpt-j-6B',
