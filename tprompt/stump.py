@@ -98,7 +98,6 @@ class PromptStump:
                 checkpoint=self.checkpoint,  # which language model to use
                 num_learned_tokens=12,  # how long of a prompt to learn
                 n_shots=1,  # number of examples in context
-                batch_size=self.args.batch_size,  # batch size for iprompt
                 n_epochs=5,  # how many epochs to search
                 batch_size=self.batch_size,  # batch size for iprompt
                 llm_float16=False,  # whether to load the model in float_16

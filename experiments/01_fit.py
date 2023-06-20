@@ -179,12 +179,21 @@ if __name__ == '__main__':
     random.seed(args.seed)
 
     # load text data
-    X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
-        dataset_name=args.dataset_name,
-        # subsample_frac=args.subsample_frac,
-        return_lists=True,
-        binary_classification=args.binary_classification,
-    )
+    if args.dataset_name.startswith('knnprompting'):
+        # format like knnprompting__imdb
+        dataset_name = args.dataset_name.split('__')[1]
+        X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
+            dataset_name, 10_000
+        )
+    else:
+        # X_* are np arrays of text. y_* are np arrays of labels [0, 0, 1, ...]
+        X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
+            dataset_name=args.dataset_name,
+            # subsample_frac=args.subsample_frac,
+            return_lists=True,
+            binary_classification=args.binary_classification,
+        )
+    import pdb; pdb.set_trace()
     if args.truncate_example_length > 0:
         X_train_text = [x[:args.truncate_example_length] for x in X_train_text]
         X_test_text = [x[:args.truncate_example_length] for x in X_test_text]
