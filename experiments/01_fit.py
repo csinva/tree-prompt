@@ -124,7 +124,7 @@ def add_main_args(parser):
                         help='Max length of characters for each input')
     parser.add_argument('--binary_classification', type=int, default=1, help='Whether to truncate dataset to binary classification')
     parser.add_argument('--subsample_frac', type=float, default=-1, help='Amount to subsample the training data')
-    parser.add_argument('--subsample_training_size', type=int, default=-1, help='Amount to subsample the training data')
+    parser.add_argument('--subsample_train_size', type=int, default=-1, help='Amount to subsample the training data')
     parser.add_argument('--subsample_test_size', type=int, default=-1, help='Amount to subsample the training data')
     return parser
 
