@@ -124,6 +124,8 @@ def add_main_args(parser):
                         help='Max length of characters for each input')
     parser.add_argument('--binary_classification', type=int, default=1, help='Whether to truncate dataset to binary classification')
     parser.add_argument('--subsample_frac', type=float, default=-1, help='Amount to subsample the training data')
+    parser.add_argument('--subsample_training_size', type=int, default=-1, help='Amount to subsample the training data')
+    parser.add_argument('--subsample_test_size', type=int, default=-1, help='Amount to subsample the training data')
     return parser
 
 
@@ -190,6 +192,14 @@ if __name__ == '__main__':
 
 
     # convert text data to features
+    if args.subsample_train_size > 0:
+        sss = args.subsample_train_size
+        X_train_text = X_train_text[:sss]
+        y_train = y_train[:sss]
+    if args.subsample_test_size > 0:
+        sss = args.subsample_test_size
+        X_test_text = X_test_text[:sss]
+        y_test = y_test[:sss]
     if args.model_name.startswith('manual'):
         prompts = tprompt.prompts.get_prompts(
             args, X_train_text, y_train, args.verbalizer, seed=1 # note, not passing seed here!
@@ -250,6 +260,7 @@ if __name__ == '__main__':
         X_train_text, X_cv_text, X_test_text,
         y_train, y_cv, y_test, r
     )
+    print (r)
 
     # save results
     if hasattr(model, 'prompts_list'):
