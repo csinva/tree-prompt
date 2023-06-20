@@ -231,9 +231,11 @@ class PromptStump:
         if self.args.prompt_source == "data_demonstrations":
             template = self.args.template_data_demonstrations
             if self.args.dataset_name.startswith("knnp__"):
-                max_len_input = max([len(s + random.choice(list(self.verbalizer.values()))) for s in X_text])
+                            max_len_input = max([len(self.tokenizer.encode(template%(s, random.choice(list(self.verbalizer.values()))))) for s in X_text])
+
+                max_len_input = max([len(self.tokenizer.encode(s + random.choice(list(self.verbalizer.values())))) for s in X_text])
             else:
-                max_len_input = max([len(template % (s, random.choice(list(self.verbalizer.values())))) for s in X_text])
+                max_len_input = max([len(self.tokenizer.encode(template % (s, random.choice(list(self.verbalizer.values()))))) for s in X_text])
             max_total_len = self.model.config.n_positions
             # max_len_prompt = max_total_len - max_len_input
             # assert max_len_prompt > 0
@@ -248,6 +250,7 @@ class PromptStump:
                 max_length=max_len_prompt,
                 return_attention_mask=True,
             ).to(self.model.device)
+            print("inputs.shape:", {k: v.shape for k,v in inputs.items()})
 
             # shape is (batch_size, seq_len, vocab_size)
             #import pdb; pdb.set_trace()

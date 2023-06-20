@@ -5,7 +5,7 @@ import numpy as np
 import tprompt.stump
 import tprompt.tree
 import tprompt.data
-from tqdm import tqdm
+from tqdm import trange, tqdm
 import logging
 import joblib
 import os
@@ -380,8 +380,8 @@ def calc_prompt_features(
 
         # load from cache if possible
         loaded_from_cache = False
-        if os.path.exists(cache_file):
-            # print('loading from cache!')
+        if args.use_cache == 1 and os.path.exists(cache_file):
+            print('loading from cache!')
             try:
                 preds_train, preds_test, acc_train = joblib.load(cache_file)
                 loaded_from_cache = True
