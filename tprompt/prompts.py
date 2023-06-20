@@ -5,7 +5,7 @@ import numpy as np
 import tprompt.stump
 import tprompt.tree
 import tprompt.data
-from tqdm import tqdm
+from tqdm import trange, tqdm
 import logging
 import joblib
 import os
@@ -298,10 +298,12 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
 
         # Create num_prompts prompts
         while len(prompts) < args.num_prompts:
-
+            print("len(prompts)", len(prompts), "args.num_prompts", args.num_prompts, "len(unique_ys):", len(unique_ys))
+            print("len(examples_by_y):", len(examples_by_y))
+            # breakpoint()
             # Create a prompt with demonstration for each class
             prompt = ""
-            for _ in range(args.num_data_demonstrations_per_class):
+            for _ in trange(args.num_data_demonstrations_per_class, leave=False):
                 for y in unique_ys:
                     example = rng.choice(examples_by_y[y])
                     text, _ = example
@@ -367,8 +369,8 @@ def calc_prompt_features(
 
         # load from cache if possible
         loaded_from_cache = False
-        if os.path.exists(cache_file):
-            # print('loading from cache!')
+        if args.use_cache == 1 and os.path.exists(cache_file):
+            print('loading from cache!')
             try:
                 preds_train, preds_test, acc_train = joblib.load(cache_file)
                 loaded_from_cache = True

@@ -226,7 +226,8 @@ class PromptStump:
         self.tokenizer.pad_token = self.tokenizer.eos_token
         if self.args.prompt_source == "data_demonstrations":
             template = self.args.template_data_demonstrations
-            max_len_input = max([len(template%(s, random.choice(list(self.verbalizer.values())))) for s in X_text])
+            #import pdb; pdb.set_trace()
+            max_len_input = max([len(self.tokenizer.encode(template%(s, random.choice(list(self.verbalizer.values()))))) for s in X_text])
             max_total_len = self.model.config.n_positions
             max_len_prompt = max_total_len - max_len_input
             print (f'max_len_prompt: {max_len_prompt}, max_len_total: {max_total_len}')
@@ -238,6 +239,7 @@ class PromptStump:
                 max_length=max_len_prompt,
                 return_attention_mask=True,
             ).to(self.model.device)
+            print("inputs.shape:", {k: v.shape for k,v in inputs.items()})
 
             # shape is (batch_size, seq_len, vocab_size)
             #import pdb; pdb.set_trace()
