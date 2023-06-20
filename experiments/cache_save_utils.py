@@ -13,9 +13,9 @@ def save_json(args={}, save_dir='results', fname='params.json', r={}):
     os.makedirs(save_dir, exist_ok=True)
     with open(os.path.join(save_dir, fname), 'w') as f:
         if isinstance(args, dict):
-            json.dump({**args, **r}, f, indent=4)
+            json.dump({**args, **r}, f, indent=4, default=lambda __o: __o.__dict__)
         else:
-            json.dump({**vars(args), **r}, f, indent=4)
+            json.dump({**vars(args), **r}, f, indent=4, default=lambda __o: __o.__dict__)
 
 
 def get_save_dir_unique(parser, parser_without_computational_args, args, save_dir_base):

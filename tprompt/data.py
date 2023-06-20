@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Iterable, Tuple
 
 import json
 import os
@@ -88,17 +88,33 @@ KNNPROMPTING_DATA_LABELS = {
 
 # https://github.com/BenfengXu/KNNPrompting/blob/050d7e455113c0afa82de1537210007c34e96e57/utils/template.py#L96
 KNNPROMPTING_DATA_TEMPLATE_FNS = { 
-    'agnews': lambda ins, label: f"input: {ins['sentence']}\ntype: {label}\n",
-    'cb': lambda ins, label: f"premise: {ins['premise']}\nhypothesis: {ins['hypothesis']}\nprediction: {label}\n",
-    'cr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: {label}\n",
-    'dbpedia': lambda ins, label: f"input: {ins['sentence']}\ntype: {label}\n",
-    'mpqa': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: {label}\n",
-    'mr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: {label}\n",
-    'rte': lambda ins, label: f"premise: {ins['sentence_1']}\nhypothesis: {ins['sentence_2']}\nprediction: {label}\n",
-    'sst2': lambda ins, label: f"Question: {ins['sentence']}\nType: {label}\n",
-    'sst5': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: {label}\n",
-    'subj': lambda ins, label: f"Input: {ins['sentence']}\nType: {label}\n",
-    'trec': lambda ins, label: f"Question: {ins['sentence']}\nType: {label}\n",
+    'agnews': lambda ins, label: f"input: {ins['sentence']}\ntype: ",
+    'cb': lambda ins, label: f"premise: {ins['premise']}\nhypothesis: {ins['hypothesis']}\nprediction: ",
+    'cr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
+    'dbpedia': lambda ins, label: f"input: {ins['sentence']}\ntype: ",
+    'mpqa': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
+    'mr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
+    'rte': lambda ins, label: f"premise: {ins['sentence_1']}\nhypothesis: {ins['sentence_2']}\nprediction: ",
+    'sst2': lambda ins, label: f"Question: {ins['sentence']}\nType: ",
+    'sst5': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
+    'subj': lambda ins, label: f"Input: {ins['sentence']}\nType: ",
+    'trec': lambda ins, label: f"Question: {ins['sentence']}\nType: ",
+}
+
+KNNPROMPTING_VERBALIZERS = {
+    'agnews': {'1': 'world', '2': 'sports', '3': 'business', '4': 'technology'},
+    'cb': {'contradiction': 'false', 'entailment': 'true', 'neutral': 'neither'},
+    'cr': {'0': 'negative', '1': 'positive'},
+    'dbpedia': {'1': 'company', '2': 'school', '3': 'artist', '4': 'athlete', '5': 'politics',
+                           '6': 'transportation', '7': 'building', '8': 'nature', '9': 'village', '10': 'animal',
+                           '11': 'plant', '12': 'album', '13': 'film', '14': 'book'},
+    'mpqa': {'0': 'negative', '1': 'positive'},
+    'mr': {'0': 'negative', '1': 'positive'},
+    'rte': {'not_entailment': 'false', 'entailment': 'true'},
+    'sst2': {'0': 'negative', '1': 'positive'},
+    'sst5':  {'0': 'terrible', '1': 'bad', '2': 'okay', '3': 'good', '4': 'great'},
+    'subj': {'0': 'subjective', '1': 'objective'},
+    'trec': {'0': 'description', '1': 'entity', '2': 'expression', '3': 'human','4': 'location', '5': 'number'},
 }
 
 
@@ -163,4 +179,23 @@ def load_knnprompting_dataset(
     )
     return X_train, X_test, y_train, y_test
 
+
+class KnnPromptVerbalizer:
+    def __init__(self, dataset_name):
+        self.id2label = {v: k for k,v in KNNPROMPTING_DATA_LABELS[dataset_name].items()}
+        self.verbalizer = KNNPROMPTING_VERBALIZERS[dataset_name]
+    
+    def __str__(self):
+        return str(self.id2label)
+    
+    def __getitem__(self, id_num: int) -> str:
+        label = self.id2label[id_num]
+        return self.verbalizer[label]
+    
+    def values(self) -> Iterable[int]:
+        return self.verbalizer.values()
+
+
+def get_verbalizer_knnprompting(dataset_name: str):
+    return KnnPromptVerbalizer(dataset_name)
 

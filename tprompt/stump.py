@@ -230,10 +230,16 @@ class PromptStump:
         self.tokenizer.pad_token = self.tokenizer.eos_token
         if self.args.prompt_source == "data_demonstrations":
             template = self.args.template_data_demonstrations
-            max_len_input = max([len(template%(s, random.choice(list(self.verbalizer.values())))) for s in X_text])
+            if self.args.dataset_name.startswith("knnp__"):
+                max_len_input = max([len(s + random.choice(list(self.verbalizer.values()))) for s in X_text])
+            else:
+                max_len_input = max([len(template % (s, random.choice(list(self.verbalizer.values())))) for s in X_text])
             max_total_len = self.model.config.n_positions
-            max_len_prompt = max_total_len - max_len_input
+            # max_len_prompt = max_total_len - max_len_input
+            # assert max_len_prompt > 0
+            max_len_prompt = 256
             print (f'max_len_prompt: {max_len_prompt}, max_len_total: {max_total_len}')
+            print("prompt:", self.prompt)
             inputs = self.tokenizer(
                 [self.prompt,],
                 return_tensors="pt",
@@ -328,11 +334,6 @@ class PromptStump:
         pbar = tqdm.tqdm(
             total=len(prompts), leave=False, desc="getting predictions", colour="red"
         )
-        #import pdb; pdb.set_trace()
-        #(Pdb) p past_key_values[0][0].shape
-        #torch.Size([1, 20, 732, 64])
-        #(Pdb) p past_key_values[0][1].shape
-        #torch.Size([1, 20, 732, 64])
 
         past_key_values_new = []
         for i in range(len(past_key_values)):
@@ -366,9 +367,7 @@ class PromptStump:
             inputs['attention_mask'] = attention_mask
 
             # shape is (batch_size, seq_len, vocab_size)
-            #import pdb; pdb.set_trace()
-            #logits = self.model(**inputs)["logits"].detach()
-            #import pdb; pdb.set_trace()
+            # print({k: v.shape for k,v in inputs.items()})
             outputs = self.model(**inputs, past_key_values=past_key_values_new)
             logits = outputs["logits"].detach()
             token_output_positions = inputs["attention_mask"].sum(axis=1) - past_key_values[0][0].shape[-2]

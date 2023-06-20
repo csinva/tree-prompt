@@ -179,7 +179,7 @@ if __name__ == '__main__':
     random.seed(args.seed)
 
     # load text data
-    if args.dataset_name.startswith('knnprompting'):
+    if args.dataset_name.startswith('knnp'):
         # format like knnprompting__imdb
         dataset_name = args.dataset_name.split('__')[1]
         X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
@@ -193,7 +193,6 @@ if __name__ == '__main__':
             return_lists=True,
             binary_classification=args.binary_classification,
         )
-    import pdb; pdb.set_trace()
     if args.truncate_example_length > 0:
         X_train_text = [x[:args.truncate_example_length] for x in X_train_text]
         X_test_text = [x[:args.truncate_example_length] for x in X_test_text]
