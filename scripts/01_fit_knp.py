@@ -7,14 +7,15 @@ import torch.cuda
 repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 
-save_dir = '/home/chansingh/mntv1'
+# save_dir = '/home/chansingh/mntv1'
 # save_dir = '/home/jxm3/research/prompting/tree-prompt/results'
+save_dir = '/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt'
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    'save_dir': [join(save_dir, 'tree-prompt', 'mar18')],
-    'cache_prompt_features_dir': ['/home/chansingh/mntv1/tree-prompt/cache_prompt_features'],
+    'save_dir': [join(save_dir, 'tree-prompt', 'jun20')],
+    'cache_prompt_features_dir': ['/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/cache_prompt_features'],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -27,11 +28,11 @@ params_coupled_dict = {
          prompt_source, verbalizer_num, num_data_demonstrations_per_class)
 
         for (checkpoint, batch_size) in [
-            ('gpt2', 128),
-            ('gpt2-medium', 64),
-            ('gpt2-large', 64),
-            ('gpt2-xl', 32),
-            ('EleutherAI/gpt-j-6B', 16),  
+            ('gpt2', 64),
+            ('gpt2-medium', 32),
+            ('gpt2-large', 32),
+            ('gpt2-xl', 16),
+            ('EleutherAI/gpt-j-6B', 8),  
         ]
 
         for (dataset_name, binary_classification) in [
@@ -40,18 +41,22 @@ params_coupled_dict = {
             ('knnp__cr', 1), 
             ('knnp__dbpedia', 0), 
             ('knnp__mpqa', 1), 
-            # ('knnp__mr', 1), 
+            ('knnp__mr', 1), 
             ('knnp__rte', 1), 
-            # ('knnp__sst2', 1), 
+            ('knnp__sst2', 1), 
             ('knnp__subj', 1), 
-            ('knnp__trec', 0)
+            ('knnp__trec', 0),
+            ('rotten_tomatoes', 1),
+            ('sst2', 1),
+            ('imdb', 1),
+            ('financial_phrasebank', 0),
+            ('emotion', 0),
         ]
 
         for (model_name, num_prompts) in [
-            (mod_name, num_prompt)
-            for mod_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-            for num_prompt in [1, 3, 5, 7, 10, 15, 25, 40]
-        ] + [('manual_gbdt', 40), ('manual_rf', 40)]
+            for mod_name in ['manual_tree', 'manual_ensemble']
+            for num_prompt in [40]
+        ] # + [('manual_gbdt', 40), ('manual_rf', 40)]
         
     
         for (prompt_source, verbalizer_num, num_data_demonstrations_per_class) in [
@@ -59,19 +64,6 @@ params_coupled_dict = {
         ]
 
     ],
-    
-    # ('model_name', 'split_strategy', 'max_depth',): [
-    #     ('tprompt', 'iprompt', max_depth)
-    #    for max_depth in [1, 3, 5]),
-    # ('model_name', 'batch_size', 'num_prompts', 'prompt_source'): [
-    #     (model_name, 4, num_prompts, prompt_source)
-    #     for num_prompts in [1, 3, 5, 7, 10]
-    #     for model_name in ['manual_ensemble', 'manual_tree', 'manual_boosting']
-    #     for prompt_source in ['manual', 'data_demonstrations']
-    # ],
-    # ('model_name', 'split_strategy', 'batch_size', 'max_depth',): [
-        # ('tprompt', 'iprompt', 32, max_depth) for max_depth in [1, 3, 5]
-    # ],
 }
 
 # Args list is a list of dictionaries
@@ -92,13 +84,6 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
-    # n_cpus=16,
     gpu_ids = get_gpu_ids(),
-    # gpu_ids=[0, 1],
-    # n_cpus=4,
-    # gpu_ids = [0, 1, 2, 3],
-    # gpu_ids = [0],
-    # reverse=True,
-    # n_cpus=4,
     shuffle=False,
 )
