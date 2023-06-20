@@ -2,7 +2,7 @@ from typing import Dict, List
 
 from abc import ABC, abstractmethod
 import logging
-
+import random
 import imodels
 import imodelsx.util
 import imodelsx.metrics
@@ -151,6 +151,10 @@ class PromptStump:
         preds_proba = self.predict_proba(X_text)
         return np.argmax(preds_proba, axis=1)
 
+    def predict_with_cache(self, X_text: List[str], past_key_values) -> np.ndarray[int]:
+        preds_proba = self.predict_proba_with_cache(X_text, past_key_values)
+        return np.argmax(preds_proba, axis=1)
+
     def predict_proba(self, X_text: List[str]) -> np.ndarray[float]:
         target_strs = list(self.verbalizer.values())
 
@@ -164,6 +168,89 @@ class PromptStump:
                 batch_size=self.batch_size,
             )
         else:
+            preds = self._get_logit_for_target_tokens_batched(
+                [x + self.prompt for x in X_text],
+                target_token_ids,
+                batch_size=self.batch_size,
+            )
+        # preds = np.zeros((len(X_text), len(target_token_ids)))
+        # for i, x in enumerate(X_text):
+        #     preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)
+        #     preds[i] = self._get_logit_for_target_tokens(x + self.prompt, target_token_ids)
+        assert preds.shape == (len(X_text), len(target_token_ids)), (
+            "preds shape was"
+            + str(preds.shape)
+            + " but should have been "
+            + str((len(X_text), len(target_token_ids)))
+        )
+
+        # return the class with the highest logit
+        return softmax(preds, axis=1)
+
+    def predict_proba_with_cache(self, X_text: List[str], past_key_values) -> np.ndarray[float]:
+        target_strs = list(self.verbalizer.values())
+
+        # only predict based on first token of output string
+        target_token_ids = list(map(self._get_first_token_id, target_strs))
+        if self.args.prompt_source == "data_demonstrations":
+            template = self.args.template_data_demonstrations
+            preds = self._get_logit_for_target_tokens_batched_with_cache(
+                past_key_values,
+                [template % (x, "") for x in X_text],
+                target_token_ids,
+                batch_size=self.batch_size,
+            )
+        else:
+            raise NotImplementedError
+            preds = self._get_logit_for_target_tokens_batched(
+                [x + self.prompt for x in X_text],
+                target_token_ids,
+                batch_size=self.batch_size,
+            )
+        # preds = np.zeros((len(X_text), len(target_token_ids)))
+        # for i, x in enumerate(X_text):
+        #     preds[i] = self._get_logit_for_target_tokens(x, target_token_ids)
+        #     preds[i] = self._get_logit_for_target_tokens(x + self.prompt, target_token_ids)
+        assert preds.shape == (len(X_text), len(target_token_ids)), (
+            "preds shape was"
+            + str(preds.shape)
+            + " but should have been "
+            + str((len(X_text), len(target_token_ids)))
+        )
+
+        # return the class with the highest logit
+        return softmax(preds, axis=1)
+
+    def calc_key_values(self, X_text: List[str]):
+        # only predict based on first token of output string
+        self.tokenizer.truncation_side = 'left'
+        self.tokenizer.padding = True
+        #import pdb; pdb.set_trace()
+
+
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        if self.args.prompt_source == "data_demonstrations":
+            template = self.args.template_data_demonstrations
+            max_len_input = max([len(template%(s, random.choice(list(self.verbalizer.values())))) for s in X_text])
+            max_total_len = self.model.config.n_positions
+            max_len_prompt = max_total_len - max_len_input
+            print (f'max_len_prompt: {max_len_prompt}, max_len_total: {max_total_len}')
+            inputs = self.tokenizer(
+                [self.prompt,],
+                return_tensors="pt",
+                padding=False,
+                truncation=True,
+                max_length=max_len_prompt,
+                return_attention_mask=True,
+            ).to(self.model.device)
+
+            # shape is (batch_size, seq_len, vocab_size)
+            #import pdb; pdb.set_trace()
+            #logits = self.model(**inputs)["logits"].detach()
+            outputs = self.model(**inputs)
+            return outputs['past_key_values']
+        else:
+            raise NotImplementedError
             preds = self._get_logit_for_target_tokens_batched(
                 [x + self.prompt for x in X_text],
                 target_token_ids,
@@ -229,6 +316,71 @@ class PromptStump:
                     ]
                 )
 
+    def _get_logit_for_target_tokens_batched_with_cache(
+        self, past_key_values, prompts: List[str], target_token_ids: List[int], batch_size: int = 64
+    ) -> np.ndarray[float]:
+        """Get logits for each target token
+        This can fail when token_output_ids represents multiple tokens
+        So things get mapped to the same id representing "unknown"
+        """
+        logit_targets_list = []
+        batch_num = 0
+
+        pbar = tqdm.tqdm(
+            total=len(prompts), leave=False, desc="getting predictions", colour="red"
+        )
+        #import pdb; pdb.set_trace()
+        #(Pdb) p past_key_values[0][0].shape
+        #torch.Size([1, 20, 732, 64])
+        #(Pdb) p past_key_values[0][1].shape
+        #torch.Size([1, 20, 732, 64])
+
+        past_key_values_new = []
+        for i in range(len(past_key_values)):
+            past_key_values_new.append( [past_key_values[i][0].expand(batch_size, -1, -1, -1), past_key_values[i][1].expand(batch_size, -1, -1, -1)] )
+        #import pdb; pdb.set_trace()
+        while True:
+            batch_start = batch_num * batch_size
+            batch_end = (batch_num + 1) * batch_size
+            batch_num += 1
+            pbar.update(batch_size)
+            if batch_start >= len(prompts):
+                return np.array(logit_targets_list)
+
+            prompts_batch = prompts[batch_start:batch_end]
+            if len(prompts_batch) !=  past_key_values_new[0][0].shape[0]:
+                #import pdb; pdb.set_trace()
+                for i in range(len(past_key_values)):
+                    past_key_values_new[i] = [past_key_values[i][0].expand(len(prompts_batch), -1, -1, -1), past_key_values[i][1].expand(len(prompts_batch), -1, -1, -1)] 
+            self.tokenizer.padding = True
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            inputs = self.tokenizer(
+                prompts_batch,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                return_attention_mask=True,
+            ).to(self.model.device)
+
+            attention_mask = inputs['attention_mask']
+            attention_mask = torch.cat((attention_mask.new_zeros(len(prompts_batch), past_key_values[0][0].shape[-2]).fill_(1), attention_mask), dim=-1)
+            inputs['attention_mask'] = attention_mask
+
+            # shape is (batch_size, seq_len, vocab_size)
+            #import pdb; pdb.set_trace()
+            #logits = self.model(**inputs)["logits"].detach()
+            #import pdb; pdb.set_trace()
+            outputs = self.model(**inputs, past_key_values=past_key_values_new)
+            logits = outputs["logits"].detach()
+            token_output_positions = inputs["attention_mask"].sum(axis=1) - past_key_values[0][0].shape[-2]
+            for i in range(len(prompts_batch)):
+                token_output_position = token_output_positions[i].item() - 1
+                logit_targets_list.append(
+                    [
+                        logits[i, token_output_position, token_output_id].item()
+                        for token_output_id in target_token_ids
+                    ]
+                )
     # def _get_logit_for_target_tokens(self, prompt: str, target_token_ids: List[int]) -> np.ndarray[float]:
     #     """Get logits for each target token
     #     This can fail when token_output_ids represents multiple tokens
