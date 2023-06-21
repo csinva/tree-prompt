@@ -69,11 +69,9 @@ params_coupled_dict = {
          prompt_source, verbalizer_num, num_data_demonstrations_per_class)
 
         for (checkpoint, batch_size) in [
-            ('gpt2', 32),
-            ('gpt2-medium', 16),
-            ('gpt2-large', 16),
-            ('gpt2-xl', 8),
-            ('EleutherAI/gpt-j-6B', 8),  
+            (c, b) 
+            for c in [('gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B')]
+            for b in [128, 64, 32, 16, 4, 1]
         ]
 
         for (dataset_name, binary_classification) in datasets_for_run_id[run_id]
