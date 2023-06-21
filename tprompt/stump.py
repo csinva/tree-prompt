@@ -362,12 +362,8 @@ class PromptStump:
             inputs['attention_mask'] = attention_mask
 
             # shape is (batch_size, seq_len, vocab_size)
-<<<<<<< Updated upstream
             # print(">>", past_key_values[0][0].shape)
             # print({ k: v.shape for k,v in inputs.items() })
-=======
-            print("inputs:", {k: v.shape for k,v in inputs.items()})
->>>>>>> Stashed changes
             with torch.no_grad():
                 outputs = self.model(**inputs, past_key_values=past_key_values_new)
             logits = outputs["logits"]
