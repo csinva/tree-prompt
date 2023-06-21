@@ -305,7 +305,7 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
             # Create a prompt with demonstration for each class
             prompt = ""
             chosen_examples = {
-                y: rng.choice(examples, size=args.num_data_demonstrations_per_class, replace=False) 
+                y: rng.choice(examples, size=args.num_data_demonstrations_per_class, replace=(len(examples) < args.num_data_demonstrations_per_class)) 
                 for y, examples in examples_by_y.items()
             }
 
