@@ -99,6 +99,7 @@ def add_main_args(parser):
     parser.add_argument('--model_name', type=str, default='tprompt',
                         choices=[
                             'tprompt',
+                            'manual_single_prompt',
                             'manual_tree', 'manual_ensemble', 'manual_boosting',
                             'manual_gbdt', 'manual_rf', # manual_gbdt will ignore other params like num_prompts
                         ],

@@ -50,12 +50,12 @@ datasets_for_run_id = {
 
 # save_dir = '/home/chansingh/mntv1'
 # save_dir = '/home/jxm3/research/prompting/tree-prompt/results'
-save_dir = '/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt'
+save_dir = '/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/results'
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
-    'seed': [1],
-    'save_dir': [join(save_dir, 'tree-prompt', 'jun20')],
+    'seed': [1, 2, 3],
+    'save_dir': [join(save_dir, 'tree-prompt', 'jun21')],
     'cache_prompt_features_dir': ['/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/cache_prompt_features'],
 }
 
