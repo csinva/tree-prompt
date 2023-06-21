@@ -31,6 +31,7 @@ datasets_for_run_id = {
         ],
         4: [
             ('knnp__trec', 0),
+            ('sst2', 1),
         ],
         5: [
             ('knnp__cb', 0), 
@@ -39,7 +40,6 @@ datasets_for_run_id = {
         6: [
             ('knnp__subj', 1), 
             ('knnp__sst2', 1), 
-            ('sst2', 1),
         ],
         7: [
             ('imdb', 1),
@@ -71,14 +71,14 @@ params_coupled_dict = {
         for (checkpoint, batch_size) in [
             (c, b) 
             for c in [('gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B')]
-            for b in [128, 64, 32, 16, 4, 1]
+            for b in [64, 16, 4, 1]
         ]
 
         for (dataset_name, binary_classification) in datasets_for_run_id[run_id]
 
         for (model_name, num_prompts) in [
             (mod_name, num_prompt)
-            for mod_name in ['manual_tree', 'manual_ensemble']
+            for mod_name in ['manual_tree', 'manual_ensemble', 'manual_single_prompt', 'manual_gbdt']
             for num_prompt in [40]
         ] # + [('manual_gbdt', 40), ('manual_rf', 40)]
         
@@ -86,7 +86,6 @@ params_coupled_dict = {
         for (prompt_source, verbalizer_num, num_data_demonstrations_per_class) in [
             ('data_demonstrations', 0, 128),
         ]
-
     ],
 }
 
