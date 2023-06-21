@@ -88,17 +88,17 @@ KNNPROMPTING_DATA_LABELS = {
 
 # https://github.com/BenfengXu/KNNPrompting/blob/050d7e455113c0afa82de1537210007c34e96e57/utils/template.py#L96
 KNNPROMPTING_DATA_TEMPLATE_FNS = { 
-    'agnews': lambda ins, label: f"input: {ins['sentence']}\ntype: ",
-    'cb': lambda ins, label: f"premise: {ins['premise']}\nhypothesis: {ins['hypothesis']}\nprediction: ",
-    'cr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
-    'dbpedia': lambda ins, label: f"input: {ins['sentence']}\ntype: ",
-    'mpqa': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
-    'mr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
-    'rte': lambda ins, label: f"premise: {ins['sentence_1']}\nhypothesis: {ins['sentence_2']}\nprediction: ",
-    'sst2': lambda ins, label: f"Question: {ins['sentence']}\nType: ",
-    'sst5': lambda ins, label: f"Review: {ins['sentence']}\nSentiment: ",
-    'subj': lambda ins, label: f"Input: {ins['sentence']}\nType: ",
-    'trec': lambda ins, label: f"Question: {ins['sentence']}\nType: ",
+    'agnews': lambda ins, label: f"input: {ins['sentence']}\ntype:",
+    'cb': lambda ins, label: f"premise: {ins['premise']}\nhypothesis: {ins['hypothesis']}\nprediction:",
+    'cr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment:",
+    'dbpedia': lambda ins, label: f"input: {ins['sentence']}\ntype:",
+    'mpqa': lambda ins, label: f"Review: {ins['sentence']}\nSentiment:",
+    'mr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment:",
+    'rte': lambda ins, label: f"premise: {ins['sentence_1']}\nhypothesis: {ins['sentence_2']}\nprediction:",
+    'sst2': lambda ins, label: f"Question: {ins['sentence']}\nType:",
+    'sst5': lambda ins, label: f"Review: {ins['sentence']}\nSentiment:",
+    'subj': lambda ins, label: f"Input: {ins['sentence']}\nType:",
+    'trec': lambda ins, label: f"Question: {ins['sentence']}\nType:",
 }
 
 KNNPROMPTING_VERBALIZERS = {
@@ -184,16 +184,17 @@ class KnnPromptVerbalizer:
     def __init__(self, dataset_name):
         self.id2label = {v: k for k,v in KNNPROMPTING_DATA_LABELS[dataset_name].items()}
         self.verbalizer = KNNPROMPTING_VERBALIZERS[dataset_name]
+        self._values = [f" {v}" for v in self.verbalizer.values()]
     
     def __str__(self):
         return str(self.id2label)
     
     def __getitem__(self, id_num: int) -> str:
         label = self.id2label[id_num]
-        return self.verbalizer[label]
+        return " " + self.verbalizer[label]
     
     def values(self) -> Iterable[int]:
-        return self.verbalizer.values()
+        return self._values
 
 
 def get_verbalizer_knnprompting(dataset_name: str):

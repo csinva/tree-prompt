@@ -185,6 +185,8 @@ if __name__ == '__main__':
         X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
             dataset_name, 10_000
         )
+        # Essentially disable templating in favor of knnprompt templating
+        args.template_data_demonstrations = '%s%s'
     else:
         # X_* are np arrays of text. y_* are np arrays of labels [0, 0, 1, ...]
         X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(

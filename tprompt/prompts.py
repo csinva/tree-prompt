@@ -301,26 +301,15 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
 
         # Create num_prompts prompts
         while len(prompts) < args.num_prompts:
-            if args.dataset_name.startswith("knnp__"):
-                # special templating for knnprompt datasets
-                prompt = ""
-                for _ in range(args.num_data_demonstrations_per_class):
-                    for y in unique_ys:
-                        example = rng.choice(examples_by_y[y])
-                        text, _ = example
-                        prompt += text + verbalizer[y] + "\n"
-                if prompt not in prompts:
-                    prompts.append(prompt)
-            else:
             # Create a prompt with demonstration for each class
-                prompt = ""
-                for _ in range(args.num_data_demonstrations_per_class):
-                    for y in unique_ys:
-                        example = rng.choice(examples_by_y[y])
-                        text, _ = example
-                        prompt += template % (text, verbalizer[y]) + "\n"
-                if prompt not in prompts:
-                    prompts.append(prompt)
+            prompt = ""
+            for _ in range(args.num_data_demonstrations_per_class):
+                for y in unique_ys:
+                    example = rng.choice(examples_by_y[y])
+                    text, _ = example
+                    prompt += template % (text, verbalizer[y]) + "\n"
+            if prompt not in prompts:
+                prompts.append(prompt)
         return prompts
 
 

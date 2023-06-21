@@ -4,7 +4,48 @@ from imodelsx import submit_utils
 from os.path import dirname, join
 import os.path
 import torch.cuda
+import sys
 repo_dir = dirname(dirname(os.path.abspath(__file__)))
+
+
+assert len(sys.argv) == 2, "need to run like `python scripts/01_fit_knp.py <run_id>` where run_id in [0, 7]"
+run_id = int(sys.argv[1])
+assert run_id in range(0, 8), f"invalid run_id {run_id}, must be in [0, 1, .., 7]"
+
+
+datasets_for_run_id = {
+        0: [
+            ('knnp__agnews', 0),
+            ('knnp__cr', 1), 
+        ],
+        1: [
+            ('knnp__dbpedia', 0), 
+        ],
+        2: [
+            ('knnp__mpqa', 1), 
+            ('knnp__mr', 1), 
+        ],
+        3: [
+            ('knnp__rte', 1), 
+            ('emotion', 0),
+        ],
+        4: [
+            ('knnp__trec', 0),
+        ],
+        5: [
+            ('knnp__cb', 0), 
+            ('rotten_tomatoes', 1),
+        ],
+        6: [
+            ('knnp__subj', 1), 
+            ('knnp__sst2', 1), 
+            ('sst2', 1),
+        ],
+        7: [
+            ('imdb', 1),
+            ('financial_phrasebank', 0),
+        ]
+    }
 
 
 # save_dir = '/home/chansingh/mntv1'
@@ -28,32 +69,17 @@ params_coupled_dict = {
          prompt_source, verbalizer_num, num_data_demonstrations_per_class)
 
         for (checkpoint, batch_size) in [
-            ('gpt2', 64),
-            ('gpt2-medium', 32),
-            ('gpt2-large', 32),
-            ('gpt2-xl', 16),
+            ('gpt2', 32),
+            ('gpt2-medium', 16),
+            ('gpt2-large', 16),
+            ('gpt2-xl', 8),
             ('EleutherAI/gpt-j-6B', 8),  
         ]
 
-        for (dataset_name, binary_classification) in [
-            ('knnp__agnews', 0),
-            ('knnp__cb', 0), 
-            ('knnp__cr', 1), 
-            ('knnp__dbpedia', 0), 
-            ('knnp__mpqa', 1), 
-            ('knnp__mr', 1), 
-            ('knnp__rte', 1), 
-            ('knnp__sst2', 1), 
-            ('knnp__subj', 1), 
-            ('knnp__trec', 0),
-            ('rotten_tomatoes', 1),
-            ('sst2', 1),
-            ('imdb', 1),
-            ('financial_phrasebank', 0),
-            ('emotion', 0),
-        ]
+        for (dataset_name, binary_classification) in datasets_for_run_id[run_id]
 
         for (model_name, num_prompts) in [
+            (mod_name, num_prompt)
             for mod_name in ['manual_tree', 'manual_ensemble']
             for num_prompt in [40]
         ] # + [('manual_gbdt', 40), ('manual_rf', 40)]

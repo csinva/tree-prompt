@@ -224,15 +224,11 @@ class PromptStump:
         # only predict based on first token of output string
         self.tokenizer.truncation_side = 'left'
         self.tokenizer.padding = True
-        #import pdb; pdb.set_trace()
-
 
         self.tokenizer.pad_token = self.tokenizer.eos_token
         if self.args.prompt_source == "data_demonstrations":
             template = self.args.template_data_demonstrations
             if self.args.dataset_name.startswith("knnp__"):
-                            max_len_input = max([len(self.tokenizer.encode(template%(s, random.choice(list(self.verbalizer.values()))))) for s in X_text])
-
                 max_len_input = max([len(self.tokenizer.encode(s + random.choice(list(self.verbalizer.values())))) for s in X_text])
             else:
                 max_len_input = max([len(self.tokenizer.encode(template % (s, random.choice(list(self.verbalizer.values()))))) for s in X_text])
@@ -253,7 +249,6 @@ class PromptStump:
             print("inputs.shape:", {k: v.shape for k,v in inputs.items()})
 
             # shape is (batch_size, seq_len, vocab_size)
-            #import pdb; pdb.set_trace()
             #logits = self.model(**inputs)["logits"].detach()
             outputs = self.model(**inputs)
             return outputs['past_key_values']
@@ -314,6 +309,8 @@ class PromptStump:
             # shape is (batch_size, seq_len, vocab_size)
             with torch.no_grad():
                 logits = self.model(**inputs)["logits"]
+
+            import pdb; pdb.set_trace()
             token_output_positions = inputs["attention_mask"].sum(axis=1)
             for i in range(len(prompts_batch)):
                 token_output_position = token_output_positions[i].item() - 1
@@ -341,7 +338,6 @@ class PromptStump:
         past_key_values_new = []
         for i in range(len(past_key_values)):
             past_key_values_new.append( [past_key_values[i][0].expand(batch_size, -1, -1, -1), past_key_values[i][1].expand(batch_size, -1, -1, -1)] )
-        #import pdb; pdb.set_trace()
         while True:
             batch_start = batch_num * batch_size
             batch_end = (batch_num + 1) * batch_size
@@ -351,12 +347,13 @@ class PromptStump:
                 return np.array(logit_targets_list)
 
             prompts_batch = prompts[batch_start:batch_end]
-            if len(prompts_batch) !=  past_key_values_new[0][0].shape[0]:
-                #import pdb; pdb.set_trace()
+            if len(prompts_batch) != past_key_values_new[0][0].shape[0]:
                 for i in range(len(past_key_values)):
                     past_key_values_new[i] = [past_key_values[i][0].expand(len(prompts_batch), -1, -1, -1), past_key_values[i][1].expand(len(prompts_batch), -1, -1, -1)] 
             self.tokenizer.padding = True
             self.tokenizer.pad_token = self.tokenizer.eos_token
+            print("prompts_batch[0]:", prompts_batch[0])
+            # import pdb; pdb.set_trace()
             inputs = self.tokenizer(
                 prompts_batch,
                 return_tensors="pt",
@@ -371,8 +368,9 @@ class PromptStump:
 
             # shape is (batch_size, seq_len, vocab_size)
             # print({k: v.shape for k,v in inputs.items()})
-            outputs = self.model(**inputs, past_key_values=past_key_values_new)
-            logits = outputs["logits"].detach()
+            with torch.no_grad():
+                outputs = self.model(**inputs, past_key_values=past_key_values_new)
+            logits = outputs["logits"]
             token_output_positions = inputs["attention_mask"].sum(axis=1) - past_key_values[0][0].shape[-2]
             for i in range(len(prompts_batch)):
                 token_output_position = token_output_positions[i].item() - 1
