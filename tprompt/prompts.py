@@ -300,16 +300,22 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
         prompts = []
 
         # Create num_prompts prompts
+        prompt_pbar = tqdm(total=args.num_prompts, desc="building prompts", leave=False, colour="green")
         while len(prompts) < args.num_prompts:
             # Create a prompt with demonstration for each class
             prompt = ""
-            for _ in range(args.num_data_demonstrations_per_class):
+            chosen_examples = {
+                y: rng.choice(examples, size=args.num_data_demonstrations_per_class, replace=False) 
+                for y, examples in examples_by_y.items()
+            }
+
+            for demo_idx in range(args.num_data_demonstrations_per_class):
                 for y in unique_ys:
-                    example = rng.choice(examples_by_y[y])
-                    text, _ = example
+                    text, _ = chosen_examples[y][demo_idx]
                     prompt += template % (text, verbalizer[y]) + "\n"
             if prompt not in prompts:
                 prompts.append(prompt)
+                prompt_pbar.update(1)
         return prompts
 
 

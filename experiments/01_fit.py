@@ -15,6 +15,9 @@ import imodelsx.data
 import inspect
 import os
 
+import torch
+import transformers
+
 import tprompt.tree
 import tprompt.data
 import tprompt.prompts
@@ -176,6 +179,8 @@ if __name__ == '__main__':
 
     # set seed
     np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    transformers.set_seed(args.seed)
     random.seed(args.seed)
 
     # load text data
