@@ -2,9 +2,31 @@ import numpy as np
 import imodels
 from copy import deepcopy
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 import sklearn.ensemble
 import sklearn.tree
 import tprompt.tree
+
+
+class SinglePromptClassifier:
+    def __init__(self, random_state=0):
+        self.random_state = random_state
+
+    def fit(self, X, y):
+        rng = np.random.default_rng(self.random_state)
+        self.prompt_num = rng.choice(X.shape[1])
+        prompt_val = X[:, self.prompt_num]
+        self.estimator_ = LogisticRegression()
+        self.estimator_.fit(prompt_val.reshape(-1, 1), y)
+        return self
+
+    def predict_proba(self, X):
+        prompt_val = X[:, self.prompt_num]
+        return self.estimator_.predict_proba(prompt_val.reshape(-1, 1))
+
+    def predict(self, X):
+        return np.argmax(self.predict_proba(X), axis=1)
+
 
 class IdentityEnsembleClassifier:
     def __init__(self, n_estimators=1, boosting=False):
@@ -73,6 +95,10 @@ def _get_model(model_name: str, num_prompts: int, seed: int, args=None):
         )
     elif model_name == "manual_rf":
         return sklearn.ensemble.RandomForestClassifier(
+            random_state=seed,
+        )
+    elif model_name == "manual_single_prompt":
+        return SinglePromptClassifier(
             random_state=seed,
         )
 
