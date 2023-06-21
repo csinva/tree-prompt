@@ -232,7 +232,7 @@ class PromptStump:
                 max_len_verb = max(len(self.tokenizer.encode(v)) for v in self.verbalizer.values())
                 max_len_input = max_len_verb + max(len(self.tokenizer.encode(s)) for s in X_text) + 1
             else:
-                max_len_input = max([len(self.tokenizer.encode(template % (s, random.choice(list(self.verbalizer.values()))))) for s in X_text])
+                max_len_input = max([len(self.tokenizer.encode(template % (s, random.choice(list(self.verbalizer.values()))))) for s in X_text]) + 1
             max_total_len = self.model.config.n_positions
             max_len_prompt = max_total_len - max_len_input
             assert max_len_prompt > 0
@@ -362,8 +362,12 @@ class PromptStump:
             inputs['attention_mask'] = attention_mask
 
             # shape is (batch_size, seq_len, vocab_size)
+<<<<<<< Updated upstream
             # print(">>", past_key_values[0][0].shape)
             # print({ k: v.shape for k,v in inputs.items() })
+=======
+            print("inputs:", {k: v.shape for k,v in inputs.items()})
+>>>>>>> Stashed changes
             with torch.no_grad():
                 outputs = self.model(**inputs, past_key_values=past_key_values_new)
             logits = outputs["logits"]

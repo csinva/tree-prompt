@@ -55,7 +55,7 @@ save_dir = '/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/results'
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1, 2, 3],
-    'save_dir': [join(save_dir, 'tree-prompt', 'jun21')],
+    'save_dir': [join(save_dir, 'tree-prompt', 'jun21-full')],
     'cache_prompt_features_dir': ['/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/cache_prompt_features'],
 }
 
@@ -70,7 +70,7 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             (c, b) 
-            for c in [('gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B')]
+            for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B']
             for b in [64, 16, 4, 1]
         ]
 
