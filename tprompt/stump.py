@@ -229,7 +229,8 @@ class PromptStump:
         if self.args.prompt_source == "data_demonstrations":
             template = self.args.template_data_demonstrations
             if self.args.dataset_name.startswith("knnp__"):
-                max_len_input = max([len(self.tokenizer.encode(s + random.choice(list(self.verbalizer.values())))) for s in X_text])
+                max_len_verb = max(len(self.tokenizer.encode(v)) for v in self.verbalizer.values())
+                max_len_input = max_len_verb + max(len(self.tokenizer.encode(s)) for s in X_text) + 1
             else:
                 max_len_input = max([len(self.tokenizer.encode(template % (s, random.choice(list(self.verbalizer.values()))))) for s in X_text])
             max_total_len = self.model.config.n_positions
@@ -361,6 +362,8 @@ class PromptStump:
             inputs['attention_mask'] = attention_mask
 
             # shape is (batch_size, seq_len, vocab_size)
+            # print(">>", past_key_values[0][0].shape)
+            # print({ k: v.shape for k,v in inputs.items() })
             with torch.no_grad():
                 outputs = self.model(**inputs, past_key_values=past_key_values_new)
             logits = outputs["logits"]
