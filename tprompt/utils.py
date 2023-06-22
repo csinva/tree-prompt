@@ -2,29 +2,34 @@ from sklearn.tree import DecisionTreeClassifier
 import torch
 import transformers
 import numpy as np
+import pickle as pkl
+from os.path import join
+import numpy as np
+import joblib
+
 
 def load_lm(
-    checkpoint: str, 
-    tokenizer: transformers.PreTrainedTokenizer, 
+    checkpoint: str,
+    tokenizer: transformers.PreTrainedTokenizer,
 ) -> transformers.AutoModelForCausalLM:
     kwargs = {
-        'pretrained_model_name_or_path': checkpoint,
-        'output_hidden_states': False,
-        'pad_token_id': tokenizer.eos_token_id,
-        'low_cpu_mem_usage': True,
+        "pretrained_model_name_or_path": checkpoint,
+        "output_hidden_states": False,
+        "pad_token_id": tokenizer.eos_token_id,
+        "low_cpu_mem_usage": True,
     }
     if checkpoint == "EleutherAI/gpt-j-6B":
         print(f"loading model in fp16 from checkpoint {checkpoint}")
         lm = transformers.AutoModelForCausalLM.from_pretrained(
             **kwargs,
-            revision="float16", 
-            torch_dtype=torch.float16, 
+            revision="float16",
+            torch_dtype=torch.float16,
         )
-    elif checkpoint.startswith('gpt2') and not checkpoint == 'gpt2':
+    elif checkpoint.startswith("gpt2") and not checkpoint == "gpt2":
         print(f"loading gpt model in fp16 from checkpoint {checkpoint}")
         lm = transformers.AutoModelForCausalLM.from_pretrained(
             **kwargs,
-            torch_dtype=torch.float16, 
+            torch_dtype=torch.float16,
         )
     else:
         print(f"loading model in fp32 from checkpoint {checkpoint}")
@@ -69,3 +74,51 @@ def calculate_mean_depth_of_points_in_tree(clf: DecisionTreeClassifier):
     leaf_samples = leaf_samples.astype(np.float64)
     depths = leaf_depths * leaf_samples / np.sum(leaf_samples)
     return np.sum(depths)
+
+
+def calculate_mean_unique_calls_in_ensemble(ensemble, X):
+    if X is None:
+        # Should pass X, this is just for testing
+        n_features_in = ensemble.n_features_in_
+        X = np.random.randint(2, size=(100, n_features_in))
+
+    # extract the decision path for each sample
+    ests = ensemble.estimators_.flatten()
+    feats = [set() for _ in range(len(X))]
+    for i in range(len(ests)):
+        est = ests[i]
+        node_index = est.decision_path(X).toarray()
+        feats_est = [
+            set([est.tree_.feature[x] for x in np.nonzero(row)[0]])
+            for row in node_index
+        ]
+        for j in range(len(feats)):
+            feats[j] = feats[j].union(feats_est[j])
+    # -1 for the -2 feature that is always present
+    return np.mean([len(f) - 1 for f in feats])
+
+
+def add_mean_llm_calls(r):
+    mean_llm_calls = []
+    for i, row in r.iterrows():
+        if row.model_name in ["manual_tree", "manual_gbdt"]:
+            model = pkl.load(open(join(row.save_dir_unique, "model.pkl"), "rb"))
+        else:
+            model = None
+        mean_llm_calls.append(
+            compute_mean_llm_calls(row.model_name, row.num_prompts, model=model)
+        )
+    return mean_llm_calls
+
+
+def compute_mean_llm_calls(model_name, num_prompts, model=None, X=None):
+    if model_name == "manual_tree":
+        return calculate_mean_depth_of_points_in_tree(model)
+    elif model_name == "manual_gbdt":
+        return calculate_mean_unique_calls_in_ensemble(model, X)
+    elif model_name in ["manual_single_prompt"]:
+        return 1
+    elif model_name in ["manual_ensemble", "manual_boosting"]:
+        return num_prompts
+    else:
+        return num_prompts
