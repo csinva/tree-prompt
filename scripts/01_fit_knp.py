@@ -57,6 +57,7 @@ params_shared_dict = {
     'seed': [1, 2, 3],
     'save_dir': [join(save_dir, 'tree-prompt', 'jun21')],
     'cache_prompt_features_dir': ['/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/cache_prompt_features'],
+    'subsample_train': [10_000],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)

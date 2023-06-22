@@ -13,7 +13,6 @@ import tprompt.tree
 #         self.random_state = random_state
 
 #     def fit(self, X, y):
-#         rng = np.random.default_rng(self.random_state)
 #         self.prompt_num = rng.choice(X.shape[1])
 #         prompt_val = X[:, self.prompt_num]
 #         self.estimator_ = LogisticRegression()
@@ -31,14 +30,14 @@ import tprompt.tree
 class SinglePromptClassifier:
     def __init__(self, random_state=0):
         self.random_state = random_state
-        rng = np.random.default_rng(self.random_state)
-        self.prompt_num = rng.choice(X.shape[1])
 
     def fit(self, X, y):        
+        rng = np.random.default_rng(self.random_state)
+        self.prompt_num = rng.choice(X.shape[1])
         return self
 
     def predict(self, X):
-        return X[:, self.prompt_num]
+        return X[:, self.prompt_num] # .toarray()
 
 
 class IdentityEnsembleClassifier:

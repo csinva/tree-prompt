@@ -394,6 +394,12 @@ def calc_prompt_features(
                     verbalizer=verbalizer,
                     batch_size=args.batch_size,
                 )
+            
+            # Compute max length between train and test
+            # template = m.args.template_data_demonstrations
+            # longest_verbalizer = sorted(m.verbalizer.values(), key=lambda v: len(m.tokenizer.encode(v)))
+            # max_len_input = max(len(m.tokenizer.encode(template % (x, longest_verbalizer))) for x in X_train_text + X_test_text)
+
             #import pdb; pdb.set_trace()
             past_key_values = None
             if args.cache_prompt == 1:
