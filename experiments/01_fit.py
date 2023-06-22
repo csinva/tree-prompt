@@ -278,7 +278,6 @@ if __name__ == '__main__':
         X_train_text, X_cv_text, X_test_text,
         y_train, y_cv, y_test, r
     )
-    print (r)
 
     # add num llm calls
     try:
@@ -288,8 +287,10 @@ if __name__ == '__main__':
             model=model,
             X=X_test,
         )
-    except:
+    except Exception as e:
+        print(e)
         r['mean_llm_calls'] = -1
+    print(r)
 
     # save results
     if hasattr(model, 'prompts_list'):
