@@ -278,6 +278,17 @@ if __name__ == '__main__':
     )
     print (r)
 
+    # add num llm calls
+    try:
+        r['mean_llm_calls'] = tprompt.utils.compute_mean_llm_calls(
+            args.model_name, 
+            args.num_prompts,
+            model=model,
+            X=X_test,
+        )
+    except:
+        r['mean_llm_calls'] = -1
+
     # save results
     if hasattr(model, 'prompts_list'):
         r['prompts_list'] = model.prompts_list
