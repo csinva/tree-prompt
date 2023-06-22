@@ -229,11 +229,12 @@ if __name__ == '__main__':
 
         # apply onehot encoding to prompt features if more than 3 classes
         # (FPB 3 classes are in order so let them be)
-        if len(np.unique(y_train)) > 3:
-            enc = OneHotEncoder(handle_unknown='ignore')
-            X_train = enc.fit_transform(X_train)
-            X_test = enc.transform(X_test)
-            feature_names = enc.get_feature_names_out(feature_names)
+        # if len(np.unique(y_train)) > 3:
+        #     print("Converting to one-hot")
+        #     enc = OneHotEncoder(handle_unknown='ignore')
+        #     X_train = enc.fit_transform(X_train)
+        #     X_test = enc.transform(X_test)
+        #     feature_names = enc.get_feature_names_out(feature_names)
 
         
     # split train into train and cv

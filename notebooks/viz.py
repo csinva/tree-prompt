@@ -86,8 +86,8 @@ COLORS = {
 }
 
 SOURCE_RENAME_DICT = {
-    "manual": "Human",
-    "data_demonstrations": "Demonstrations",
+    "manual": "Instruction",
+    "data_demonstrations": "Few-shot",
 }
 
 COLORS_RENAMED_DICT = {MODELS_RENAME_DICT[k]: c for k, c in COLORS.items()}

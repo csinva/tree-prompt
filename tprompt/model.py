@@ -8,24 +8,36 @@ import sklearn.tree
 import tprompt.tree
 
 
+# class SinglePromptClassifier:
+#     def __init__(self, random_state=0):
+#         self.random_state = random_state
+
+#     def fit(self, X, y):
+#         self.prompt_num = rng.choice(X.shape[1])
+#         prompt_val = X[:, self.prompt_num]
+#         self.estimator_ = LogisticRegression()
+#         self.estimator_.fit(prompt_val.reshape(-1, 1), y)
+#         return self
+
+#     def predict_proba(self, X):
+#         prompt_val = X[:, self.prompt_num]
+#         return self.estimator_.predict_proba(prompt_val.reshape(-1, 1))
+
+#     def predict(self, X):
+#         return np.argmax(self.predict_proba(X), axis=1)
+
+
 class SinglePromptClassifier:
     def __init__(self, random_state=0):
         self.random_state = random_state
 
-    def fit(self, X, y):
+    def fit(self, X, y):        
         rng = np.random.default_rng(self.random_state)
         self.prompt_num = rng.choice(X.shape[1])
-        prompt_val = X[:, self.prompt_num]
-        self.estimator_ = LogisticRegression()
-        self.estimator_.fit(prompt_val.reshape(-1, 1), y)
         return self
 
-    def predict_proba(self, X):
-        prompt_val = X[:, self.prompt_num]
-        return self.estimator_.predict_proba(prompt_val.reshape(-1, 1))
-
     def predict(self, X):
-        return np.argmax(self.predict_proba(X), axis=1)
+        return X[:, self.prompt_num] # .toarray()
 
 
 class IdentityEnsembleClassifier:

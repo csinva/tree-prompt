@@ -2,6 +2,7 @@ from typing import Dict, List
 
 from abc import ABC, abstractmethod
 import logging
+import math
 import random
 import imodels
 import imodelsx.util
@@ -226,18 +227,35 @@ class PromptStump:
         self.tokenizer.padding = True
 
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        if self.args.prompt_source == "data_demonstrations":
+        if self.args.prompt_source == "data_demonstrations" or self.args.prompt_source == 'data_demonstrations_knn':
+            p = self.prompt
+            if self.args.prompt_source == 'data_demonstrations_knn':
+                p = self.prompt[0]
             template = self.args.template_data_demonstrations
             if self.args.dataset_name.startswith("knnp__"):
                 max_len_verb = max(len(self.tokenizer.encode(v)) for v in self.verbalizer.values())
                 max_len_input = max_len_verb + max(len(self.tokenizer.encode(s)) for s in X_text) + 1
             else:
-                max_len_input = max([len(self.tokenizer.encode(template % (s, random.choice(list(self.verbalizer.values()))))) for s in X_text]) + 1
+                max_len_input = -1
+                for v in self.verbalizer.values():
+                    max_len_input = max(max_len_input, max([len(self.tokenizer.encode(template % (s, v))) for s in X_text[:1000]]))
             max_total_len = self.model.config.n_positions
             max_len_prompt = max_total_len - max_len_input
+            if True:#'dbpedia' in self.args.dataset_name or max_len_prompt < 0: # dbpedia
+                print ('max len prompt less than 0, truncating to the left')
+                #import pdb; pdb.set_trace()
+                max_len_input = -1
+                for v in self.verbalizer.values():
+                    a = [len(self.tokenizer.encode(template % (s, v))) for s in X_text[:1000]]
+                    max_len_input = max(max_len_input, np.percentile(a, 95))
+            max_len_input = int(math.ceil(max_len_input))
+            max_len_prompt = max_total_len - max_len_input
+            self.max_len_input = max_len_input
+            print (f'max_len_prompt: {max_len_prompt}, max_len_input: {max_len_input}')
+            #import pdb; pdb.set_trace()
             assert max_len_prompt > 0
             inputs = self.tokenizer(
-                [self.prompt,],
+                [p,],
                 return_tensors="pt",
                 padding=False,
                 truncation=True,
@@ -319,7 +337,7 @@ class PromptStump:
                 )
 
     def _get_logit_for_target_tokens_batched_with_cache(
-        self, past_key_values, prompts: List[str], target_token_ids: List[int], batch_size: int = 64
+        self, past_key_values, prompts: List[str], target_token_ids: List[int], batch_size: int = 64,
     ) -> np.ndarray[float]:
         """Get logits for each target token
         This can fail when token_output_ids represents multiple tokens
@@ -354,6 +372,7 @@ class PromptStump:
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
+                max_length=self.max_len_input,
                 return_attention_mask=True,
             ).to(self.model.device)
 
