@@ -6,7 +6,8 @@ import os.path
 import torch.cuda
 repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
-
+# python /home/chansingh/tree-prompt/experiments/01_fit.py --dataset_name emotion --binary_classification 0 --model_name manual_ensemble --checkpoint gpt2 --batch_size 2 --num_prompts 15 --prompt_source data_demonstrations --verbalizer_num 0 --num_data_demonstrations_per_class 1 --seed 1 --save_dir /home/chansingh/test --cache_prompt_features_dir /home/chansingh/mntv1/tree-prompt/cache_prompt_features
+# python /home/chansingh/tree-prompt/experiments/01_fit.py --dataset_name sst2 --binary_classification 1 --model_name manual_hstree --checkpoint gpt2 --batch_size 2 --num_prompts 15 --prompt_source data_demonstrations --verbalizer_num 0 --num_data_demonstrations_per_class 1 --seed 1 --save_dir /home/chansingh/test --cache_prompt_features_dir /home/chansingh/mntv1/tree-prompt/cache_prompt_features
 save_dir = '/home/chansingh/mntv1'
 # save_dir = '/home/jxm3/research/prompting/tree-prompt/results'
 
@@ -88,7 +89,7 @@ def get_gpu_ids() -> List[str]:
 submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
-    actually_run=True,
+    actually_run=False,
     # n_cpus=16,
     gpu_ids = get_gpu_ids(),
     # gpu_ids=[0, 1],

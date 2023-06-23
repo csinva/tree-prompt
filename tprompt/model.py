@@ -6,6 +6,7 @@ from sklearn.linear_model import LogisticRegression
 import sklearn.ensemble
 import sklearn.tree
 import tprompt.tree
+import imodels
 
 
 # class SinglePromptClassifier:
@@ -113,6 +114,8 @@ def _get_model(model_name: str, num_prompts: int, seed: int, args=None):
         return SinglePromptClassifier(
             random_state=seed,
         )
+    elif model_name == "manual_hstree":
+        return imodels.HSTreeClassifierCV()
 
 
 if __name__ == "__main__":

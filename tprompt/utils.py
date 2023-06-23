@@ -39,13 +39,13 @@ def load_lm(
     return lm
 
 
-def calculate_mean_depth_of_points_in_tree(clf: DecisionTreeClassifier):
+def calculate_mean_depth_of_points_in_tree(tree_):
     """Calculate the mean depth of each point in the tree.
     This is the average depth of the path from the root to the point.
     """
-    n_nodes = clf.tree_.node_count
-    children_left = clf.tree_.children_left
-    children_right = clf.tree_.children_right
+    n_nodes = tree_.node_count
+    children_left = tree_.children_left
+    children_right = tree_.children_right
 
     node_depth = np.zeros(shape=n_nodes, dtype=np.int64)
     is_leaves = np.zeros(shape=n_nodes, dtype=bool)
@@ -67,7 +67,7 @@ def calculate_mean_depth_of_points_in_tree(clf: DecisionTreeClassifier):
             is_leaves[node_id] = True
 
     # iterate over leaves and calculate the number of samples in each of them
-    n_samples = clf.tree_.n_node_samples
+    n_samples = tree_.n_node_samples
     leaf_samples = n_samples[is_leaves]
     leaf_depths = node_depth[is_leaves]
     leaf_depths = leaf_depths.astype(np.float64)
@@ -101,7 +101,7 @@ def calculate_mean_unique_calls_in_ensemble(ensemble, X):
 def add_mean_llm_calls(r):
     mean_llm_calls = []
     for i, row in r.iterrows():
-        if row.model_name in ["manual_tree", "manual_gbdt"]:
+        if row.model_name in ["manual_tree", "manual_gbdt", "manual_hstree"]:
             model = pkl.load(open(join(row.save_dir_unique, "model.pkl"), "rb"))
         else:
             model = None
@@ -113,7 +113,9 @@ def add_mean_llm_calls(r):
 
 def compute_mean_llm_calls(model_name, num_prompts, model=None, X=None):
     if model_name == "manual_tree":
-        return calculate_mean_depth_of_points_in_tree(model)
+        return calculate_mean_depth_of_points_in_tree(model.tree_)
+    elif model_name == "manual_hstree":
+        return calculate_mean_depth_of_points_in_tree(model.estimator_.tree_)
     elif model_name == "manual_gbdt":
         return calculate_mean_unique_calls_in_ensemble(model, X)
     elif model_name in ["manual_single_prompt"]:

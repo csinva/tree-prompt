@@ -102,6 +102,7 @@ def add_main_args(parser):
                             'manual_single_prompt',
                             'manual_tree', 'manual_ensemble', 'manual_boosting',
                             'manual_gbdt', 'manual_rf', # manual_gbdt will ignore other params like num_prompts
+                            'manual_hstree',
                         ],
                         help='name of model. "Manual" specifies that it first calculates all features and then uses sklearn tree')
     parser.add_argument('--split_strategy', type=str, choices=['iprompt', 'cart', 'linear'],
@@ -278,7 +279,6 @@ if __name__ == '__main__':
         X_train_text, X_cv_text, X_test_text,
         y_train, y_cv, y_test, r
     )
-    print (r)
 
     # add num llm calls
     try:
@@ -288,8 +288,10 @@ if __name__ == '__main__':
             model=model,
             X=X_test,
         )
-    except:
+    except Exception as e:
+        print(e)
         r['mean_llm_calls'] = -1
+    print(r)
 
     # save results
     if hasattr(model, 'prompts_list'):
