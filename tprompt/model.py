@@ -7,38 +7,20 @@ import sklearn.ensemble
 import sklearn.tree
 import tprompt.tree
 import imodels
-
-
-# class SinglePromptClassifier:
-#     def __init__(self, random_state=0):
-#         self.random_state = random_state
-
-#     def fit(self, X, y):
-#         self.prompt_num = rng.choice(X.shape[1])
-#         prompt_val = X[:, self.prompt_num]
-#         self.estimator_ = LogisticRegression()
-#         self.estimator_.fit(prompt_val.reshape(-1, 1), y)
-#         return self
-
-#     def predict_proba(self, X):
-#         prompt_val = X[:, self.prompt_num]
-#         return self.estimator_.predict_proba(prompt_val.reshape(-1, 1))
-
-#     def predict(self, X):
-#         return np.argmax(self.predict_proba(X), axis=1)
+from sklearn.model_selection import GridSearchCV
 
 
 class SinglePromptClassifier:
     def __init__(self, random_state=0):
         self.random_state = random_state
 
-    def fit(self, X, y):        
+    def fit(self, X, y):
         rng = np.random.default_rng(self.random_state)
         self.prompt_num = rng.choice(X.shape[1])
         return self
 
     def predict(self, X):
-        return X[:, self.prompt_num] # .toarray()
+        return X[:, self.prompt_num]  # .toarray()
 
 
 class IdentityEnsembleClassifier:
@@ -116,6 +98,10 @@ def _get_model(model_name: str, num_prompts: int, seed: int, args=None):
         )
     elif model_name == "manual_hstree":
         return imodels.HSTreeClassifierCV()
+    elif model_name == "manual_tree_cv":
+        assert num_prompts >= 40, "need at least 40 prompts for manual_tree_cv"
+        param_grid = {"max_depth": [1, 3, 5, 7, 10, 15, 20, 25, 30, 40]}
+        return GridSearchCV(DecisionTreeClassifier(), param_grid, cv=5)
 
 
 if __name__ == "__main__":

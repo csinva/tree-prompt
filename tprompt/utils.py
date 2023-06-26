@@ -118,6 +118,8 @@ def compute_mean_llm_calls(model_name, num_prompts, model=None, X=None):
         return calculate_mean_depth_of_points_in_tree(model.estimator_.tree_)
     elif model_name == "manual_gbdt":
         return calculate_mean_unique_calls_in_ensemble(model, X)
+    elif model_name == 'manual_tree_cv':
+        return calculate_mean_depth_of_points_in_tree(model.best_estimator_.tree_)
     elif model_name in ["manual_single_prompt"]:
         return 1
     elif model_name in ["manual_ensemble", "manual_boosting"]:

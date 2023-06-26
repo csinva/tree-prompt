@@ -37,8 +37,8 @@ DSETS_RENAME_DICT = {
     "sst2": "SST2",
     "tweet_eval": "Tweet (Hate)",
     "imdb": "IMDB",
-    "rotten_tomatoes": "Rotten tomatoes",
-    "financial_phrasebank": "Financial phrasebank",
+    "rotten_tomatoes": "MR",
+    "financial_phrasebank": "FPB",
 }
 
 DSETS_RENAME_DICT_ABBR = {
@@ -72,7 +72,7 @@ VERBS_RENAME_DICT = {
 XLAB = {
     "max_depth": "Tree depth",
     "n_estimators": "# estimators",
-    "mean_llm_calls": "# LLM calls",
+    "mean_llm_calls": "# LM calls",
     "num_prompts": "# prompts",
     'subsample_frac': 'Fraction samples'
 }

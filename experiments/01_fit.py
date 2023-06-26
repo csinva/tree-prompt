@@ -102,7 +102,7 @@ def add_main_args(parser):
                             'manual_single_prompt',
                             'manual_tree', 'manual_ensemble', 'manual_boosting',
                             'manual_gbdt', 'manual_rf', # manual_gbdt will ignore other params like num_prompts
-                            'manual_hstree',
+                            'manual_hstree', 'manual_tree_cv',
                         ],
                         help='name of model. "Manual" specifies that it first calculates all features and then uses sklearn tree')
     parser.add_argument('--split_strategy', type=str, choices=['iprompt', 'cart', 'linear'],
