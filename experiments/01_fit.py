@@ -117,6 +117,8 @@ def add_main_args(parser):
                         help='the underlying model used for prediction (or for constructing features from prompt)')
     parser.add_argument('--checkpoint_prompting', type=str, default='EleutherAI/gpt-j-6B',
                         help='the model used for finding the prompt')
+    parser.add_argument('--checkpoint_evaluation', type=str, default='None',
+                        help='the checkpoint used in the tree for evaluation, when different the original checktpoin')
     parser.add_argument('--verbalizer_num', type=int, default=0,
                         help='which verbalizer to use')
     parser.add_argument('--prompt_source', type=str, default='manual', choices=['manual', 'data_demonstrations'],
@@ -227,6 +229,21 @@ if __name__ == '__main__':
                 y_train, y_test, args.checkpoint, args.verbalizer,
                 cache_prompt_features_dir=args.cache_prompt_features_dir,
             )
+
+        # optionally replace X_test with features from a different checkpoint
+        if not args.checkpoint_evaluation == 'None':
+            args_copy = deepcopy(args)
+            args_copy.checkpoint = args_copy.checkpoint_evaluation
+            prompts_copy = tprompt.prompts.get_prompts(
+                args_copy, X_train_text, y_train, args.verbalizer, seed=1 # note, not passing seed here!
+            )
+            assert all(np.array(prompts_copy) == np.array(prompts)), f'Prompts are different for evaluation checkpoint {args.checkpoint_evaluation} vs training checkpoint {args.checkpoint}'
+            _, X_test, _ = \
+                tprompt.prompts.calc_prompt_features(
+                    args_copy, prompts, X_train_text, X_test_text,
+                    y_train, y_test, args_copy.checkpoint, args.verbalizer,
+                    cache_prompt_features_dir=args.cache_prompt_features_dir,
+                )
         
         if ('tree' in args.model_name.lower()) or ('ensemble' in args.model_name.lower()):
             # apply onehot encoding to prompt features if more than 3 classes
