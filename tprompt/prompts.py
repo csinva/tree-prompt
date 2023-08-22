@@ -1,6 +1,6 @@
 from typing import Dict, List
 from transformers import AutoTokenizer
-from tprompt.utils import load_lm
+from tprompt.utils import load_lm, load_tokenizer
 import numpy as np
 import tprompt.stump
 import tprompt.tree
@@ -16,8 +16,10 @@ path_to_repo = dirname(dirname(os.path.abspath(__file__)))
 
 
 def get_verbalizer(args):
-    if args.dataset_name.startswith('knnp__'):
-        return tprompt.data.get_verbalizer_knnprompting(args.dataset_name.replace('knnp__', ''))
+    if args.dataset_name.startswith("knnp__"):
+        return tprompt.data.get_verbalizer_knnprompting(
+            args.dataset_name.replace("knnp__", "")
+        )
 
     VERB_0 = {0: " Negative.", 1: " Positive."}
     VERB_1 = {
@@ -300,12 +302,18 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
         prompts = []
 
         # Create num_prompts prompts
-        prompt_pbar = tqdm(total=args.num_prompts, desc="building prompts", leave=False, colour="green")
+        prompt_pbar = tqdm(
+            total=args.num_prompts, desc="building prompts", leave=False, colour="green"
+        )
         while len(prompts) < args.num_prompts:
             # Create a prompt with demonstration for each class
             prompt = ""
             chosen_examples = {
-                y: rng.choice(examples, size=args.num_data_demonstrations_per_class, replace=(len(examples) < args.num_data_demonstrations_per_class)) 
+                y: rng.choice(
+                    examples,
+                    size=args.num_data_demonstrations_per_class,
+                    replace=(len(examples) < args.num_data_demonstrations_per_class),
+                )
                 for y, examples in examples_by_y.items()
             }
 
@@ -342,13 +350,12 @@ def calc_prompt_features(
     y_test,
     checkpoint: str,
     verbalizer: Dict[int, str],
-    cache_prompt_features_dir=join(path_to_repo, 'results', 'cache_prompt_features'),
+    cache_prompt_features_dir=join(path_to_repo, "results", "cache_prompt_features"),
 ):
     logging.info("calculating prompt features with " + checkpoint)
-
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+    tokenizer = load_tokenizer(checkpoint=checkpoint)
     model = load_lm(checkpoint=checkpoint, tokenizer=tokenizer).to("cuda")
-    m = None # don't load model until checking for cache to speed things up
+    m = None  # don't load model until checking for cache to speed things up
 
     # test different manual stumps
     # print('prompts', prompts)
@@ -376,7 +383,7 @@ def calc_prompt_features(
         # load from cache if possible
         loaded_from_cache = False
         if args.use_cache == 1 and os.path.exists(cache_file):
-            print('loading from cache!')
+            print("loading from cache!")
             try:
                 preds_train, preds_test, acc_train = joblib.load(cache_file)
                 loaded_from_cache = True
@@ -394,19 +401,23 @@ def calc_prompt_features(
                     verbalizer=verbalizer,
                     batch_size=args.batch_size,
                 )
-            
+
             # Compute max length between train and test
             # template = m.args.template_data_demonstrations
             # longest_verbalizer = sorted(m.verbalizer.values(), key=lambda v: len(m.tokenizer.encode(v)))
             # max_len_input = max(len(m.tokenizer.encode(template % (x, longest_verbalizer))) for x in X_train_text + X_test_text)
 
-            #import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             past_key_values = None
             if args.cache_prompt == 1:
                 m.prompt = p
                 past_key_values = m.calc_key_values(X_train_text)
-            preds_train, acc_train = _calc_features_single_prompt(X_train_text, y_train, m, p, past_key_values=past_key_values)
-            preds_test, _ = _calc_features_single_prompt(X_test_text, y_test, m, p, past_key_values=past_key_values)
+            preds_train, acc_train = _calc_features_single_prompt(
+                X_train_text, y_train, m, p, past_key_values=past_key_values
+            )
+            preds_test, _ = _calc_features_single_prompt(
+                X_test_text, y_test, m, p, past_key_values=past_key_values
+            )
             joblib.dump((preds_train, preds_test, acc_train), cache_file)
 
         prompt_features_train[:, i] = preds_train

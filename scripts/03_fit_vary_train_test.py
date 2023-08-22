@@ -19,7 +19,8 @@ params_shared_dict = {
     ],
     "num_data_demonstrations_per_class": [1],
     # "subsample_frac": [0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0],
-    "num_prompts": [40],
+    # "num_prompts": [40],
+    'cache_prompt': [0],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -28,6 +29,7 @@ params_coupled_dict = {
         "dataset_name",
         "binary_classification",
         "model_name",
+        "num_prompts",
         "checkpoint",
         "checkpoint_evaluation",
         "prompt_source",
@@ -37,16 +39,29 @@ params_coupled_dict = {
             dataset_name,
             binary_classification,
             model_name,
+            num_prompts,
             checkpoint,
             checkpoint_evaluation,
             prompt_source,
             verbalizer_num,
         )
         for (checkpoint, checkpoint_evaluation) in [
-            ("gpt2", "gpt2"),
-            ("gpt2", "EleutherAI/gpt-j-6B"),
-            ("EleutherAI/gpt-j-6B", "EleutherAI/gpt-j-6B"),
-            ("EleutherAI/gpt-j-6B", "gpt2"),
+            # ("gpt2", "gpt2"),
+            # ("gpt2", "EleutherAI/gpt-j-6B"),
+            # ("EleutherAI/gpt-j-6B", "EleutherAI/gpt-j-6B"),
+            # ("EleutherAI/gpt-j-6B", "gpt2"),
+            ("gpt2-xl", "gpt2-xl"),
+            # ("gpt2-xl", "EleutherAI/gpt-j-6B"),
+            # ("gpt2-xl", "gpt2"),
+            # ("EleutherAI/gpt-j-6B", "gpt2-xl"),
+            # ("gpt2", "gpt2-xl"),
+            ("llama_7b", "llama_7b"),
+            # ("llama_7b", "EleutherAI/gpt-j-6B"),
+            # ("llama_7b", "gpt2"),
+            # ("EleutherAI/gpt-j-6B", "llama_7b"),
+            # ("gpt2", "llama_7b"),
+
+
         ]
         for (dataset_name, binary_classification) in [
             ("rotten_tomatoes", 1),
@@ -55,9 +70,11 @@ params_coupled_dict = {
             ("financial_phrasebank", 0),
             ("emotion", 0),
         ]
-        for model_name in [
-            "manual_tree",
-            "manual_gbdt",
+        for (model_name, num_prompts) in [
+            # ("manual_tree", 40),
+            # ("manual_gbdt", 40),
+            ("manual_tree", 1),
+            # ("manual_single_prompt", 40), # This code doesn't quite work
         ]
         for (prompt_source, verbalizer_num) in [
             ("manual", 0),
@@ -86,8 +103,8 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, "experiments", "01_fit.py"),
     actually_run=True,
     # n_cpus=16,
-    # gpu_ids = get_gpu_ids(),
-    reverse=True,
-    n_cpus=8,
+    gpu_ids = get_gpu_ids(),
+    reverse=False,
+    # n_cpus=8,
     shuffle=False,
 )
