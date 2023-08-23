@@ -6,6 +6,16 @@ import pickle as pkl
 from os.path import join
 import numpy as np
 import joblib
+import os.path
+from transformers import AutoTokenizer
+LLAMA_DIR = os.path.expanduser("~/llama")  # expects a folder in here named 'llama_7b'
+
+
+def load_tokenizer(checkpoint: str) -> transformers.PreTrainedTokenizer:
+    if ('llama' in checkpoint.lower()) and ('llama-2' not in checkpoint.lower()):
+        return transformers.LlamaTokenizer.from_pretrained(join(LLAMA_DIR, checkpoint))
+    else:
+        return AutoTokenizer.from_pretrained(checkpoint)
 
 
 def load_lm(
@@ -25,10 +35,24 @@ def load_lm(
             revision="float16",
             torch_dtype=torch.float16,
         )
+    elif "llama-2" in checkpoint:
+        print("loading llama model:", checkpoint)
+        lm = transformers.AutoModelForCausalLM.from_pretrained(
+            checkpoint,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            offload_folder="offload",
+        )   
     elif checkpoint.startswith("gpt2") and not checkpoint == "gpt2":
         print(f"loading gpt model in fp16 from checkpoint {checkpoint}")
         lm = transformers.AutoModelForCausalLM.from_pretrained(
             **kwargs,
+            torch_dtype=torch.float16,
+        )
+    elif checkpoint.startswith("llama_"):
+        lm = transformers.LlamaForCausalLM.from_pretrained(
+            join(LLAMA_DIR, checkpoint),
+            device_map="auto",
             torch_dtype=torch.float16,
         )
     else:
@@ -118,7 +142,7 @@ def compute_mean_llm_calls(model_name, num_prompts, model=None, X=None):
         return calculate_mean_depth_of_points_in_tree(model.estimator_.tree_)
     elif model_name == "manual_gbdt":
         return calculate_mean_unique_calls_in_ensemble(model, X)
-    elif model_name == 'manual_tree_cv':
+    elif model_name == "manual_tree_cv":
         return calculate_mean_depth_of_points_in_tree(model.best_estimator_.tree_)
     elif model_name in ["manual_single_prompt"]:
         return 1

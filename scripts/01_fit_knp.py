@@ -42,7 +42,7 @@ datasets_for_run_id = {
             ('knnp__sst2', 1), 
         ],
         7: [
-            ('imdb', 1),
+            # ('imdb', 1),
             ('financial_phrasebank', 0),
         ]
     }
@@ -71,7 +71,8 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             (c, b) 
-            for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B']
+            # for c in [('gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B')]
+            for c in [('daryl149/llama-2-7b-chat-hf',)]
             for b in [64, 16, 4, 1]
         ]
 

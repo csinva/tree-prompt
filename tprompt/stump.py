@@ -8,6 +8,7 @@ import imodels
 import imodelsx.util
 import imodelsx.metrics
 import numpy as np
+import tprompt.utils
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
@@ -62,7 +63,7 @@ class PromptStump:
         self.checkpoint_prompting = checkpoint_prompting
         self.model = model
         if tokenizer is None:
-            self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+            self.tokenizer = tprompt.utils.load_tokenizer(checkpoint)
         else:
             self.tokenizer = tokenizer
         self.batch_size = batch_size

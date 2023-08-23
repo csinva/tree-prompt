@@ -90,7 +90,7 @@ def get_gpu_ids() -> List[str]:
 submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
-    actually_run=False,
+    actually_run=True,
     # n_cpus=16,
     gpu_ids = get_gpu_ids(),
     # gpu_ids=[0, 1],
