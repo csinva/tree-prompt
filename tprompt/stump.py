@@ -240,7 +240,10 @@ class PromptStump:
                 max_len_input = -1
                 for v in self.verbalizer.values():
                     max_len_input = max(max_len_input, max([len(self.tokenizer.encode(template % (s, v))) for s in X_text[:1000]]))
-            max_total_len = self.model.config.n_positions
+            try:
+                max_total_len = self.model.config.n_positions
+            except:
+                max_total_len = self.model.config.max_position_embeddings 
             max_len_prompt = max_total_len - max_len_input
             if True:#'dbpedia' in self.args.dataset_name or max_len_prompt < 0: # dbpedia
                 print ('max len prompt less than 0, truncating to the left')
