@@ -12,7 +12,7 @@ LLAMA_DIR = os.path.expanduser("~/llama")  # expects a folder in here named 'lla
 
 
 def load_tokenizer(checkpoint: str) -> transformers.PreTrainedTokenizer:
-    if checkpoint.startswith("llama_"):
+    if 'llama' in checkpoint.lower():
         return transformers.LlamaTokenizer.from_pretrained(join(LLAMA_DIR, checkpoint))
     else:
         return AutoTokenizer.from_pretrained(checkpoint)

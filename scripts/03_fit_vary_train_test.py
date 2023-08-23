@@ -21,6 +21,7 @@ params_shared_dict = {
     # "subsample_frac": [0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0],
     # "num_prompts": [40],
     'cache_prompt': [0],
+    'batch_size': [2],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -50,11 +51,12 @@ params_coupled_dict = {
             # ("gpt2", "EleutherAI/gpt-j-6B"),
             # ("EleutherAI/gpt-j-6B", "EleutherAI/gpt-j-6B"),
             # ("EleutherAI/gpt-j-6B", "gpt2"),
-            ("gpt2-xl", "gpt2-xl"),
+            # ("gpt2-xl", "gpt2-xl"),
             # ("gpt2-xl", "EleutherAI/gpt-j-6B"),
             # ("gpt2-xl", "gpt2"),
             # ("EleutherAI/gpt-j-6B", "gpt2-xl"),
             # ("gpt2", "gpt2-xl"),
+            # ('meta-llama/Llama-2-7b', 'meta-llama/Llama-2-7b'),
             ("llama_7b", "llama_7b"),
             # ("llama_7b", "EleutherAI/gpt-j-6B"),
             # ("llama_7b", "gpt2"),
@@ -66,13 +68,13 @@ params_coupled_dict = {
         for (dataset_name, binary_classification) in [
             ("rotten_tomatoes", 1),
             ("sst2", 1),
-            ("imdb", 1),
+            # ("imdb", 1),
             ("financial_phrasebank", 0),
             ("emotion", 0),
         ]
         for (model_name, num_prompts) in [
-            # ("manual_tree", 40),
-            # ("manual_gbdt", 40),
+            ("manual_tree", 40),
+            ("manual_gbdt", 40),
             ("manual_tree", 1),
             # ("manual_single_prompt", 40), # This code doesn't quite work
         ]
@@ -103,7 +105,8 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, "experiments", "01_fit.py"),
     actually_run=True,
     # n_cpus=16,
-    gpu_ids = get_gpu_ids(),
+    # gpu_ids = get_gpu_ids(),
+    # gpu_ids=[[0, 1, 3]], # [[0, 1], [2, 3]]
     reverse=False,
     # n_cpus=8,
     shuffle=False,
