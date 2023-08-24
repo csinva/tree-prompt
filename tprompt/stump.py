@@ -161,6 +161,8 @@ class PromptStump:
 
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
+        assert len(set(target_token_ids)) == len(set(target_strs)), f"error: target_token_ids {set(target_token_ids)} not unique to target strings {set(target_strs)}"
+
         if self.args.prompt_source == "data_demonstrations":
             template = self.args.template_data_demonstrations
             preds = self._get_logit_for_target_tokens_batched(
@@ -193,6 +195,8 @@ class PromptStump:
 
         # only predict based on first token of output string
         target_token_ids = list(map(self._get_first_token_id, target_strs))
+        assert len(set(target_token_ids)) == len(set(target_strs)), f"error: target_token_ids {set(target_token_ids)} not unique to target strings {set(target_strs)}"
+
         if self.args.prompt_source == "data_demonstrations":
             template = self.args.template_data_demonstrations
             preds = self._get_logit_for_target_tokens_batched_with_cache(
@@ -247,7 +251,6 @@ class PromptStump:
             max_len_prompt = max_total_len - max_len_input
             if True:#'dbpedia' in self.args.dataset_name or max_len_prompt < 0: # dbpedia
                 print ('max len prompt less than 0, truncating to the left')
-                #import pdb; pdb.set_trace()
                 max_len_input = -1
                 for v in self.verbalizer.values():
                     a = [len(self.tokenizer.encode(template % (s, v))) for s in X_text[:1000]]
@@ -256,7 +259,6 @@ class PromptStump:
             max_len_prompt = max_total_len - max_len_input
             self.max_len_input = max_len_input
             print (f'max_len_prompt: {max_len_prompt}, max_len_input: {max_len_input}')
-            #import pdb; pdb.set_trace()
             assert max_len_prompt > 0
             inputs = self.tokenizer(
                 [p,],
@@ -410,8 +412,15 @@ class PromptStump:
     #     return np.array(logit_targets)
 
     def _get_first_token_id(self, prompt: str) -> str:
-        """Get first token id in prompt"""
-        return self.tokenizer(prompt)["input_ids"][0]
+        """Get first token id in prompt (after special tokens).
+        
+        Need to strip special tokens for LLAMA so we don't get a special space token at the beginning."""
+        if 'llama' in self.checkpoint:
+            prompt = prompt.lstrip()
+
+        tokens = self.tokenizer(prompt)["input_ids"]
+        tokens = [t for t in tokens if t not in self.tokenizer.all_special_ids]
+        return tokens[0]
 
     def __str__(self):
         return f"PromptStump(val={self.value_mean:0.2f} n={np.sum(self.n_samples)} prompt={self.prompt})"
