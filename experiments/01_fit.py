@@ -73,7 +73,10 @@ def evaluate_model(model, X_train, X_cv, X_test,
                         r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
                 elif multiclass:
                     for metric_name, metric_fn in metrics_proba_multiclass.items():
-                        r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+                        try:
+                            r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+                        except:
+                            r[f'{metric_name}_{split_name}'] = -1
 
     return r
 
