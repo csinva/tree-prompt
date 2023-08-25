@@ -42,7 +42,7 @@ datasets_for_run_id = {
             ('knnp__sst2', 1), 
         ],
         7: [
-            # ('imdb', 1),
+            ('imdb', 1),
             ('financial_phrasebank', 0),
         ]
     }
@@ -55,7 +55,7 @@ save_dir = '/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/results'
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1, 2, 3],
-    'save_dir': [join(save_dir, 'tree-prompt', 'jun21-full')],
+    'save_dir': [join(save_dir, 'tree-prompt', 'jun22-full')],
     'cache_prompt_features_dir': ['/n/holyscratch01/rush_lab/Users/yuntian/tree/tree-prompt/cache_prompt_features'],
     'subsample_train': [10_000],
 }

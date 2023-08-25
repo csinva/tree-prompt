@@ -8,6 +8,7 @@ import numpy as np
 import joblib
 import os.path
 from transformers import AutoTokenizer
+import os
 LLAMA_DIR = os.path.expanduser("~/llama")  # expects a folder in here named 'llama_7b'
 
 
