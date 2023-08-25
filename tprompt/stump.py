@@ -415,7 +415,7 @@ class PromptStump:
         """Get first token id in prompt (after special tokens).
         
         Need to strip special tokens for LLAMA so we don't get a special space token at the beginning."""
-        if 'llama' in self.checkpoint:
+        if 'llama' in self.checkpoint.lower():
             prompt = prompt.lstrip()
 
         tokens = self.tokenizer(prompt)["input_ids"]
