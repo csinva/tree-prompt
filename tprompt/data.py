@@ -101,6 +101,7 @@ KNNPROMPTING_DATA_TEMPLATE_FNS = {
     'trec': lambda ins, label: f"Question: {ins['sentence']}\nType:",
 }
 
+
 KNNPROMPTING_VERBALIZERS = {
     'agnews': {'1': 'world', '2': 'sports', '3': 'business', '4': 'technology'},
     'cb': {'contradiction': 'false', 'entailment': 'true', 'neutral': 'neither'},
@@ -116,7 +117,6 @@ KNNPROMPTING_VERBALIZERS = {
     'subj': {'0': 'subjective', '1': 'objective'},
     'trec': {'0': 'description', '1': 'entity', '2': 'expression', '3': 'human','4': 'location', '5': 'number'},
 }
-
 
 
 def _load_knnprompting_dataset_file(

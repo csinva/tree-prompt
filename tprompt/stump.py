@@ -305,6 +305,11 @@ class PromptStump:
         logit_targets_list = []
         batch_num = 0
 
+        try:
+            max_total_len = self.model.config.n_positions
+        except:
+            max_total_len = self.model.config.max_position_embeddings 
+
         pbar = tqdm.tqdm(
             total=len(prompts), leave=False, desc='getting dataset predictions for top prompt', colour="red"
         )
@@ -326,6 +331,7 @@ class PromptStump:
                 padding=True,
                 truncation=True,
                 return_attention_mask=True,
+                max_length=max_total_len,
             ).to(self.model.device)
 
             # shape is (batch_size, seq_len, vocab_size)

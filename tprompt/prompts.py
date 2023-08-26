@@ -6,9 +6,11 @@ import tprompt.stump
 import tprompt.tree
 import tprompt.data
 from tqdm import trange, tqdm
+import math
 import logging
 import joblib
 import os
+import random
 from dict_hash import sha256
 from os.path import dirname, basename, join
 
@@ -317,10 +319,14 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
                 for y, examples in examples_by_y.items()
             }
 
-            for demo_idx in range(args.num_data_demonstrations_per_class):
-                for y in unique_ys:
-                    text, _ = chosen_examples[y][demo_idx]
-                    prompt += template % (text, verbalizer[y]) + "\n"
+            # Take an even number of demonstrations per class, but shuffle them.
+            demo_classes = unique_ys * math.ceil(args.num_data_demonstrations_per_class // len(unique_ys))
+            random.shuffle(demo_classes)
+            demo_classes = demo_classes[:args.num_data_demonstrations_per_class]
+
+            for idx, y in enumerate(demo_classes):
+                text, _ = chosen_examples[y][idx]
+                prompt += template % (text, verbalizer[y]) + "\n"
             if prompt not in prompts:
                 prompts.append(prompt)
                 prompt_pbar.update(1)

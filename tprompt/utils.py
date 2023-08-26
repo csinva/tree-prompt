@@ -13,6 +13,8 @@ import os
 
 LLAMA_DIR = os.path.expanduser("~/llama")  # expects a folder in here named 'llama_7b'
 
+os.environ["LLAMA_TOKEN"] = "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"
+
 
 def load_tokenizer(checkpoint: str) -> transformers.PreTrainedTokenizer:
     if ('llama' in checkpoint.lower()) and ('llama-2' not in checkpoint.lower()):

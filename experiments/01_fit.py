@@ -195,7 +195,7 @@ if __name__ == '__main__':
         # format like knnprompting__imdb
         dataset_name = args.dataset_name.split('__')[1]
         X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
-            dataset_name, 10_000
+            dataset_name, 100 # 10_000
         )
         # Essentially disable templating in favor of knnprompt templating
         args.template_data_demonstrations = '%s%s'
