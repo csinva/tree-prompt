@@ -10,6 +10,7 @@ import imodels
 from sklearn.model_selection import GridSearchCV
 
 
+
 class SinglePromptClassifier:
     def __init__(self, random_state=0):
         self.random_state = random_state

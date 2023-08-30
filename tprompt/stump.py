@@ -20,7 +20,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 class PromptStump:
     def __init__(
         self,
-        args,
+        args=None,
         prompt: str=None,
         split_strategy: str = "iprompt",
         tokenizer=None,
@@ -38,6 +38,7 @@ class PromptStump:
             Currently only supports binary classification with binary features.
         Params
         ------
+        args: contains some parameters passed through namespace
         prompt: str
             the prompt to use (optional)
         split_strategy: str
@@ -52,7 +53,14 @@ class PromptStump:
         checkpoint_prompting: str
             the model used for finding the prompt
         """
-        self.args = args
+        if args is None:
+            class placeholder:
+                prompt_source = None
+                template_data_demonstrations = None
+                dataset_name = ''
+            self.args = placeholder()
+        else:
+            self.args = args
         self.prompt = prompt
         assert split_strategy in ["iprompt", "cart", "linear", "manual"]
         self.split_strategy = split_strategy
