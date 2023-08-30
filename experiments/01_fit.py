@@ -136,6 +136,7 @@ def add_main_args(parser):
     parser.add_argument('--subsample_frac', type=float, default=-1, help='Amount to subsample the training data')
     parser.add_argument('--subsample_train_size', type=int, default=-1, help='Amount to subsample the training data')
     parser.add_argument('--subsample_test_size', type=int, default=-1, help='Amount to subsample the training data')
+    parser.add_argument('--save_results', type=int, default=1, help='Whether to save results')
     return parser
 
 
@@ -257,6 +258,10 @@ if __name__ == '__main__':
                 X_train = enc.fit_transform(X_train)
                 X_test = enc.transform(X_test)
                 feature_names = enc.get_feature_names_out(feature_names)
+
+    if not args.save_results:
+        print('Not saving results!')
+        exit(0)
 
         
     # split train into train and cv

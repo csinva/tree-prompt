@@ -47,38 +47,38 @@ params_coupled_dict = {
             verbalizer_num,
         )
         for (checkpoint, checkpoint_evaluation) in [
-            ("gpt2", "gpt2"),
+            # ("gpt2", "gpt2"),
             # ('gpt2', 'gpt2-medium'),
             # ('gpt2', 'gpt2-large'),
             # ('gpt2', 'gpt2-xl'),
             # ("gpt2", "EleutherAI/gpt-j-6B"),
 
             # ("gpt2-medium", "gpt2"),
-            ("gpt2-medium", "gpt2-medium"),
+            # ("gpt2-medium", "gpt2-medium"),
             # ("gpt2-medium", "gpt2-large"),
             # ("gpt2-medium", "gpt2-xl"),
             # ("gpt2-medium", "EleutherAI/gpt-j-6B"),
 
             # ("gpt2-large", "gpt2"),
             # ("gpt2-large", "gpt2-medium"),
-            ("gpt2-large", "gpt2-large"),
+            # ("gpt2-large", "gpt2-large"),
             # ("gpt2-large", "gpt2-xl"),
             # ("gpt2-large", "EleutherAI/gpt-j-6B"),
 
             # ("gpt2-xl", "gpt2"),
             # ("gpt2-xl", "gpt2-medium"),
             # ("gpt2-xl", "gpt2-large"),
-            ("gpt2-xl", "gpt2-xl"),
+            # ("gpt2-xl", "gpt2-xl"),
             # ("gpt2-xl", "EleutherAI/gpt-j-6B"),
 
             # ("EleutherAI/gpt-j-6B", "gpt2"),
             # ("EleutherAI/gpt-j-6B", "gpt2-medium"),
             # ("EleutherAI/gpt-j-6B", "gpt2-large"),
             # ("EleutherAI/gpt-j-6B", "gpt2-xl"),
-            ("EleutherAI/gpt-j-6B", "EleutherAI/gpt-j-6B"),
+            # ("EleutherAI/gpt-j-6B", "EleutherAI/gpt-j-6B"),
 
 
-            # ('meta-llama/Llama-2-7b-hf', 'meta-llama/Llama-2-7b-hf'),
+            ('meta-llama/Llama-2-7b-hf', 'meta-llama/Llama-2-7b-hf'),
             # ("llama_7b", "llama_7b"),
 
 
