@@ -53,7 +53,8 @@ def evaluate_model(model, X_train, X_cv, X_test,
         if X_text_ is not None:
 
             # metrics discrete
-            predict_parameters = inspect.signature(model.predict).parameters.keys()
+            predict_parameters = inspect.signature(
+                model.predict).parameters.keys()
             if 'X_text' in predict_parameters:
                 y_pred_ = model.predict(X_text=X_text_).astype(int)
             else:
@@ -70,17 +71,21 @@ def evaluate_model(model, X_train, X_cv, X_test,
                 if not multiclass:
                     y_pred_proba_ = y_pred_proba_[:, 1]
                     for metric_name, metric_fn in metrics_proba.items():
-                        r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+                        r[f'{metric_name}_{split_name}'] = metric_fn(
+                            y_, y_pred_proba_)
                 elif multiclass:
                     for metric_name, metric_fn in metrics_proba_multiclass.items():
                         try:
-                            r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_proba_)
+                            r[f'{metric_name}_{split_name}'] = metric_fn(
+                                y_, y_pred_proba_)
                         except:
                             r[f'{metric_name}_{split_name}'] = -1
 
     return r
 
 # initialize args
+
+
 def add_main_args(parser):
     """Caching uses the non-default values from argparse to name the saving directory.
     Changing the default arg an argument will break cache compatibility with previous runs.
@@ -90,7 +95,7 @@ def add_main_args(parser):
     parser.add_argument('--dataset_name', type=str,
                         default='rotten_tomatoes', help='name of dataset')
     # parser.add_argument('--subsample_frac', type=float,
-                        # default=1, help='fraction of samples to use')
+    # default=1, help='fraction of samples to use')
 
     # training misc args
     parser.add_argument('--seed', type=int, default=1,
@@ -104,7 +109,7 @@ def add_main_args(parser):
                             'tprompt',
                             'manual_single_prompt',
                             'manual_tree', 'manual_ensemble', 'manual_boosting',
-                            'manual_gbdt', 'manual_rf', # manual_gbdt will ignore other params like num_prompts
+                            'manual_gbdt', 'manual_rf',  # manual_gbdt will ignore other params like num_prompts
                             'manual_hstree', 'manual_tree_cv',
                         ],
                         help='name of model. "Manual" specifies that it first calculates all features and then uses sklearn tree')
@@ -129,14 +134,20 @@ def add_main_args(parser):
                         would use example demonstrations from training set.''')
     parser.add_argument('--template_data_demonstrations', type=str,
                         default='Input: %s\nOutput:%s', help='template, only for --prompt_source data_demonstrations!')
-    parser.add_argument('--num_data_demonstrations_per_class', type=int, default=1, help='If prompt source is data_demonstrations, how many to include per class')
+    parser.add_argument('--num_data_demonstrations_per_class', type=int, default=1,
+                        help='If prompt source is data_demonstrations, how many to include per class')
     parser.add_argument('--truncate_example_length', type=int, default=3000,
                         help='Max length of characters for each input')
-    parser.add_argument('--binary_classification', type=int, default=1, help='Whether to truncate dataset to binary classification')
-    parser.add_argument('--subsample_frac', type=float, default=-1, help='Amount to subsample the training data')
-    parser.add_argument('--subsample_train_size', type=int, default=-1, help='Amount to subsample the training data')
-    parser.add_argument('--subsample_test_size', type=int, default=-1, help='Amount to subsample the training data')
-    parser.add_argument('--save_results', type=int, default=1, help='Whether to save results')
+    parser.add_argument('--binary_classification', type=int, default=1,
+                        help='Whether to truncate dataset to binary classification')
+    parser.add_argument('--subsample_frac', type=float,
+                        default=-1, help='Amount to subsample the training data')
+    parser.add_argument('--subsample_train_size', type=int,
+                        default=-1, help='Amount to subsample the training data')
+    parser.add_argument('--subsample_test_size', type=int,
+                        default=-1, help='Amount to subsample the training data')
+    parser.add_argument('--save_results', type=int,
+                        default=1, help='Whether to save results')
     return parser
 
 
@@ -162,7 +173,8 @@ if __name__ == '__main__':
         deepcopy(parser_without_computational_args))
     args = parser.parse_args()
     if args.binary_classification == 0 and args.dataset_name in ['sst2', 'rotten_tomatoes', 'imdb']:
-        logging.info(f'Skipping {args.dataset_name} since binary_classification=0')
+        logging.info(
+            f'Skipping {args.dataset_name} since binary_classification=0')
         exit(0)
     if args.dataset_name == 'emotion' and args.verbalizer_num == 1:
         logging.info(f'Skipping {args.dataset_name} since verbalizer_num=1')
@@ -196,7 +208,7 @@ if __name__ == '__main__':
         # format like knnprompting__imdb
         dataset_name = args.dataset_name.split('__')[1]
         X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
-            dataset_name, 100 # 10_000
+            dataset_name, 100  # 10_000
         )
         # Essentially disable templating in favor of knnprompt templating
         args.template_data_demonstrations = '%s%s'
@@ -213,7 +225,6 @@ if __name__ == '__main__':
         X_test_text = [x[:args.truncate_example_length] for x in X_test_text]
         # print('examples', X_train_text[:30])
 
-
     # convert text data to features
     if args.subsample_train_size > 0:
         sss = args.subsample_train_size
@@ -225,8 +236,8 @@ if __name__ == '__main__':
         y_test = y_test[:sss]
     if args.model_name.startswith('manual'):
         prompts = tprompt.prompts.get_prompts(
-            args, X_train_text, y_train, args.verbalizer, seed=1 # note, not passing seed here!
-        )  
+            args, X_train_text, y_train, args.verbalizer, seed=1  # note, not passing seed here!
+        )
         X_train, X_test, feature_names = \
             tprompt.prompts.calc_prompt_features(
                 args, prompts, X_train_text, X_test_text,
@@ -239,16 +250,18 @@ if __name__ == '__main__':
             args_copy = deepcopy(args)
             args_copy.checkpoint = args_copy.checkpoint_evaluation
             prompts_copy = tprompt.prompts.get_prompts(
-                args_copy, X_train_text, y_train, args.verbalizer, seed=1 # note, not passing seed here!
+                # note, not passing seed here!
+                args_copy, X_train_text, y_train, args.verbalizer, seed=1
             )
-            assert all(np.array(prompts_copy) == np.array(prompts)), f'Prompts are different for evaluation checkpoint {args.checkpoint_evaluation} vs training checkpoint {args.checkpoint}'
+            assert all(np.array(prompts_copy) == np.array(
+                prompts)), f'Prompts are different for evaluation checkpoint {args.checkpoint_evaluation} vs training checkpoint {args.checkpoint}'
             _, X_test, _ = \
                 tprompt.prompts.calc_prompt_features(
                     args_copy, prompts, X_train_text, X_test_text,
                     y_train, y_test, args_copy.checkpoint, args.verbalizer,
                     cache_prompt_features_dir=args.cache_prompt_features_dir,
                 )
-        
+
         if ('tree' in args.model_name.lower()) or ('ensemble' in args.model_name.lower()):
             # apply onehot encoding to prompt features if more than 3 classes
             # (FPB 3 classes are in order so let them be)
@@ -260,10 +273,14 @@ if __name__ == '__main__':
                 feature_names = enc.get_feature_names_out(feature_names)
 
     if not args.save_results:
+        r = defaultdict(list)
+        r.update(vars(args))
+        r['save_dir_unique'] = save_dir_unique
+        cache_save_utils.save_json(
+            args=args, save_dir=save_dir_unique, fname='params.json', r=r)
         print('Not saving results!')
         exit(0)
 
-        
     # split train into train and cv
     if args.subsample_frac == 1:
         X_cv_text, X_cv, y_cv = None, None, None
@@ -274,19 +291,19 @@ if __name__ == '__main__':
             cv_size = 0.33
         X_train, X_cv, X_train_text, X_cv_text, y_train, y_cv = train_test_split(
             X_train, X_train_text, y_train, test_size=cv_size, random_state=args.seed)
-    
 
     # get model
-    model = tprompt.model._get_model(args.model_name, args.num_prompts, args.seed, args=args)
+    model = tprompt.model._get_model(
+        args.model_name, args.num_prompts, args.seed, args=args)
 
     # fit the model
     fit_parameters = inspect.signature(model.fit).parameters.keys()
     kwargs = {}
     if 'feature_names' in fit_parameters and feature_names is not None:
         kwargs['feature_names'] = feature_names
-    if 'X_text' in fit_parameters: # Tree class only uses argument "X_text"
+    if 'X_text' in fit_parameters:  # Tree class only uses argument "X_text"
         kwargs['X_text'] = X_train_text
-    if 'X' in fit_parameters: # sklearn models only use argument "X"
+    if 'X' in fit_parameters:  # sklearn models only use argument "X"
         kwargs['X'] = X_train
     model.fit(y=y_train, **kwargs)
 
@@ -308,7 +325,7 @@ if __name__ == '__main__':
     # add num llm calls
     try:
         r['mean_llm_calls'] = tprompt.utils.compute_mean_llm_calls(
-            args.model_name, 
+            args.model_name,
             args.num_prompts,
             model=model,
             X=X_test,

@@ -29,6 +29,8 @@ params_shared_dict = {
         "rotten_tomatoes",
         "sst2",
         "imdb",
+        "emotion",
+        "financial_phrasebank",
     ],
 }
 
@@ -83,7 +85,7 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, "experiments", "01_fit.py"),
     actually_run=True,
     # n_cpus=16,
-    gpu_ids=get_gpu_ids(),
+    gpu_ids=[1, 2, 3],  # get_gpu_ids(),
     # gpu_ids=[1, 2, 3], # [[0, 1], [2, 3]]
     reverse=False,
     # n_cpus=8,
