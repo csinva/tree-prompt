@@ -5,6 +5,7 @@ import logging
 import random
 from collections import defaultdict
 from os.path import join, dirname
+import joblib
 import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, balanced_accuracy_score, brier_score_loss
 from sklearn.model_selection import train_test_split
@@ -24,6 +25,41 @@ import tprompt.prompts
 import tprompt.model
 import cache_save_utils
 path_to_repo = dirname(dirname(os.path.abspath(__file__)))
+
+
+def get_text_data(args):
+    if args.dataset_name.startswith('knnp'):
+        # format like knnprompting__imdb
+        dataset_name = args.dataset_name.split('__')[1]
+        X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
+            dataset_name, 100  # 10_000
+        )
+        # Essentially disable templating in favor of knnprompt templating
+        args.template_data_demonstrations = '%s%s'
+    else:
+        # X_* are np arrays of text. y_* are np arrays of labels [0, 0, 1, ...]
+        X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
+            dataset_name=args.dataset_name,
+            # subsample_frac=args.subsample_frac,
+            return_lists=True,
+            binary_classification=args.binary_classification,
+        )
+    if args.truncate_example_length > 0:
+        X_train_text = [x[:args.truncate_example_length]
+                        for x in X_train_text]
+        X_test_text = [x[:args.truncate_example_length]
+                       for x in X_test_text]
+        # print('examples', X_train_text[:30])
+
+    if args.subsample_train_size > 0:
+        sss = args.subsample_train_size
+        X_train_text = X_train_text[:sss]
+        y_train = y_train[:sss]
+    if args.subsample_test_size > 0:
+        sss = args.subsample_test_size
+        X_test_text = X_test_text[:sss]
+        y_test = y_test[:sss]
+    return X_train_text, X_test_text, y_train, y_test
 
 
 def evaluate_model(model, X_train, X_cv, X_test,
@@ -203,37 +239,10 @@ if __name__ == '__main__':
     transformers.set_seed(args.seed)
     random.seed(args.seed)
 
-    # load text data
-    if args.dataset_name.startswith('knnp'):
-        # format like knnprompting__imdb
-        dataset_name = args.dataset_name.split('__')[1]
-        X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
-            dataset_name, 100  # 10_000
-        )
-        # Essentially disable templating in favor of knnprompt templating
-        args.template_data_demonstrations = '%s%s'
-    else:
-        # X_* are np arrays of text. y_* are np arrays of labels [0, 0, 1, ...]
-        X_train_text, X_test_text, y_train, y_test = imodelsx.data.load_huggingface_dataset(
-            dataset_name=args.dataset_name,
-            # subsample_frac=args.subsample_frac,
-            return_lists=True,
-            binary_classification=args.binary_classification,
-        )
-    if args.truncate_example_length > 0:
-        X_train_text = [x[:args.truncate_example_length] for x in X_train_text]
-        X_test_text = [x[:args.truncate_example_length] for x in X_test_text]
-        # print('examples', X_train_text[:30])
+    # load and process text data (truncate, subsample)
+    X_train_text, X_test_text, y_train, y_test = get_text_data(args)
 
     # convert text data to features
-    if args.subsample_train_size > 0:
-        sss = args.subsample_train_size
-        X_train_text = X_train_text[:sss]
-        y_train = y_train[:sss]
-    if args.subsample_test_size > 0:
-        sss = args.subsample_test_size
-        X_test_text = X_test_text[:sss]
-        y_test = y_test[:sss]
     if args.model_name.startswith('manual'):
         prompts = tprompt.prompts.get_prompts(
             args, X_train_text, y_train, args.verbalizer, seed=1  # note, not passing seed here!
@@ -262,10 +271,10 @@ if __name__ == '__main__':
                     cache_prompt_features_dir=args.cache_prompt_features_dir,
                 )
 
+        # apply onehot encoding to prompt features if more than 3 classes
+        # (FPB 3 classes are in order so let them be unless we need them to be binary (args.save_results is True))
         if ('tree' in args.model_name.lower()) or ('ensemble' in args.model_name.lower()):
-            # apply onehot encoding to prompt features if more than 3 classes
-            # (FPB 3 classes are in order so let them be)
-            if len(np.unique(y_train)) > 3:
+            if len(np.unique(y_train)) > 3 or (args.save_results and len(np.unique(y_train)) == 3):
                 print("Converting to one-hot")
                 enc = OneHotEncoder(handle_unknown='ignore')
                 X_train = enc.fit_transform(X_train)
@@ -278,7 +287,17 @@ if __name__ == '__main__':
         r['save_dir_unique'] = save_dir_unique
         cache_save_utils.save_json(
             args=args, save_dir=save_dir_unique, fname='params.json', r=r)
-        print('Not saving results!')
+        cached_dset = {
+            'X_train': X_train,
+            'X_test': X_test,
+            'y_train': y_train,
+            'y_test': y_test,
+            'feature_names': feature_names,
+            # 'verbalizer': args.verbalizer,
+            # **r,
+        }
+        joblib.dump(cached_dset, join(save_dir_unique, 'cached_dset.pkl'))
+        print('Not saving model result, only data!')
         exit(0)
 
     # split train into train and cv

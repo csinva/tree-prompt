@@ -72,7 +72,6 @@ params_coupled_dict = {
         for (checkpoint, batch_size) in [
             (c, b)
             for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B', 'meta-llama/Llama-2-7b-hf']
-            # for c in [('meta-llama/Llama-2-7b-hf')]
             for b in [64, 16, 4, 1]
         ]
 
@@ -80,10 +79,9 @@ params_coupled_dict = {
 
         for (model_name, num_prompts) in [
             (mod_name, num_prompt)
-            # , 'manual_ensemble', 'manual_single_prompt', 'manual_gbdt']
             for mod_name in ['manual_tree']
             for num_prompt in [40]
-        ]  # + [('manual_gbdt', 40), ('manual_rf', 40)]
+        ]
 
 
         for (prompt_source, verbalizer_num, num_data_demonstrations_per_class) in [

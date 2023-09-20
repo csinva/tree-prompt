@@ -48,19 +48,15 @@ params_coupled_dict = {
             prompt_source,
             verbalizer_num,
         )
-        for (checkpoint, batch_size) in [
-            ("gpt2", 64),
-            ("gpt2-medium", 64),
-            ("gpt2-large", 32),
-            ("gpt2-xl", 16),
-            ("EleutherAI/gpt-j-6B", 8),
-            ("llama_7b", 2),
-            ("meta-llama/Llama-2-7b-hf", 8),
+        for (checkpoint) in [
+            "meta-llama/Llama-2-13b-hf",
+            # "gpt2", "gpt2-medium", "gpt2-large", "gpt2-xl", "EleutherAI/gpt-j-6B", "llama_7b", "meta-llama/Llama-2-7b-hf"
         ]
         for (prompt_source, verbalizer_num) in [
             ("manual", 0),
-            ("data_demonstrations", 0),
+            # ("data_demonstrations", 0), # need to fix smth for this to work, maybe args.template...
         ]
+        for batch_size in [64, 32, 16, 8, 2]
     ],
 }
 
@@ -85,8 +81,9 @@ submit_utils.run_args_list(
     script_name=join(repo_dir, "experiments", "01_fit.py"),
     actually_run=True,
     # n_cpus=16,
-    gpu_ids=[1, 2, 3],  # get_gpu_ids(),
-    # gpu_ids=[1, 2, 3], # [[0, 1], [2, 3]]
+    # gpu_ids=[],  # get_gpu_ids(),
+    # gpu_ids=[0, 1, 2, 3],
+    gpu_ids=[[0, 1], [2, 3]],
     reverse=False,
     # n_cpus=8,
     shuffle=False,

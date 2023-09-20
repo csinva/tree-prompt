@@ -314,13 +314,16 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
                 y: rng.choice(
                     examples,
                     size=args.num_data_demonstrations_per_class,
-                    replace=(len(examples) < args.num_data_demonstrations_per_class),
+                    replace=(len(examples) <
+                             args.num_data_demonstrations_per_class),
                 )
                 for y, examples in examples_by_y.items()
             }
 
             # Take an even number of demonstrations per class, but shuffle them.
-            demo_classes = unique_ys * math.ceil(args.num_data_demonstrations_per_class // len(unique_ys))
+            demo_classes = unique_ys * \
+                math.ceil(args.num_data_demonstrations_per_class //
+                          len(unique_ys))
             random.shuffle(demo_classes)
             demo_classes = demo_classes[:args.num_data_demonstrations_per_class]
 
@@ -356,11 +359,12 @@ def calc_prompt_features(
     y_test,
     checkpoint: str,
     verbalizer: Dict[int, str],
-    cache_prompt_features_dir=join(path_to_repo, "results", "cache_prompt_features"),
+    cache_prompt_features_dir=join(
+        path_to_repo, "results", "cache_prompt_features"),
 ):
     logging.info("calculating prompt features with " + checkpoint)
     tokenizer = load_tokenizer(checkpoint=checkpoint)
-    model = load_lm(checkpoint=checkpoint, tokenizer=tokenizer).to("cuda")
+    model = load_lm(checkpoint=checkpoint, tokenizer=tokenizer)  # .to("cuda")
     m = None  # don't load model until checking for cache to speed things up
 
     # test different manual stumps
@@ -381,10 +385,12 @@ def calc_prompt_features(
             "prompt_source",
             "template_data_demonstrations",
         ]
-        args_dict_cache = {k: v for k, v in args._get_kwargs() if k in arg_names_cache}
+        args_dict_cache = {k: v for k,
+                           v in args._get_kwargs() if k in arg_names_cache}
         args_dict_cache["prompt"] = p
         save_dir_unique_hash = sha256(args_dict_cache)
-        cache_file = join(cache_prompt_features_dir, f"{save_dir_unique_hash}.pkl")
+        cache_file = join(cache_prompt_features_dir,
+                          f"{save_dir_unique_hash}.pkl")
 
         # load from cache if possible
         loaded_from_cache = False
@@ -401,7 +407,8 @@ def calc_prompt_features(
             if m is None:
                 m = tprompt.stump.PromptStump(
                     args=args,
-                    split_strategy="manual",  # 'manual' specifies that we use m.prompt instead of autoprompting
+                    # 'manual' specifies that we use m.prompt instead of autoprompting
+                    split_strategy="manual",
                     model=model,
                     checkpoint=checkpoint,
                     verbalizer=verbalizer,
