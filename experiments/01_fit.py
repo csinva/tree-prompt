@@ -274,7 +274,8 @@ if __name__ == '__main__':
         # apply onehot encoding to prompt features if more than 3 classes
         # (FPB 3 classes are in order so let them be unless we need them to be binary (args.save_results is True))
         if ('tree' in args.model_name.lower()) or ('ensemble' in args.model_name.lower()):
-            if len(np.unique(y_train)) > 3 or (args.save_results and len(np.unique(y_train)) == 3):
+            num_unique_outputs = len(np.unique(y_train))
+            if num_unique_outputs > 2:
                 print("Converting to one-hot")
                 enc = OneHotEncoder(handle_unknown='ignore')
                 X_train = enc.fit_transform(X_train)

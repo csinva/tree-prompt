@@ -49,6 +49,7 @@ params_coupled_dict = {
             verbalizer_num,
         )
         for (checkpoint) in [
+            # 'microsoft/phi-1_5',
             "meta-llama/Llama-2-13b-hf",
             # "gpt2", "gpt2-medium", "gpt2-large", "gpt2-xl", "EleutherAI/gpt-j-6B", "llama_7b", "meta-llama/Llama-2-7b-hf"
         ]

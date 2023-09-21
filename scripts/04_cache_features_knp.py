@@ -22,24 +22,24 @@ datasets_with_binary = {
     ],
     3: [
         ('knnp__rte', 1),
-        ('emotion', 0),
+        # ('emotion', 0),
     ],
     4: [
         ('knnp__trec', 0),
-        ('sst2', 1),
+        # ('sst2', 1),
     ],
     5: [
         ('knnp__cb', 0),
-        ('rotten_tomatoes', 1),
+        # ('rotten_tomatoes', 1),
     ],
     6: [
         ('knnp__subj', 1),
         ('knnp__sst2', 1),
     ],
-    7: [
-        ('imdb', 1),
-        ('financial_phrasebank', 0),
-    ]
+    # 7: [
+    #     ('imdb', 1),
+    #     ('financial_phrasebank', 0),
+    # ]
 }
 datasets_with_binary_list = sum(list(datasets_with_binary.values()), [])
 
@@ -71,7 +71,8 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             (c, b)
-            for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B', 'meta-llama/Llama-2-7b-hf']
+            for c in ["meta-llama/Llama-2-13b-hf"]
+            # for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B', "llama_7b", 'meta-llama/Llama-2-7b-hf']
             for b in [64, 16, 4, 1]
         ]
 
@@ -110,6 +111,7 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
-    gpu_ids=[0, 1, 2, 3],
+    # gpu_ids=[0, 1, 2, 3],
+    gpu_ids=[[0, 1], [2, 3]],
     shuffle=False,
 )
