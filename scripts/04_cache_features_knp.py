@@ -71,9 +71,11 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             (c, b)
-            for c in ["meta-llama/Llama-2-13b-hf"]
-            # for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B', "llama_7b", 'meta-llama/Llama-2-7b-hf']
+            # for c in ['meta-llama/Llama-2-70b-hf']
+            # for c in ["meta-llama/Llama-2-13b-hf"]
+            for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B', "llama_7b", 'meta-llama/Llama-2-7b-hf', 'meta-llama/Llama-2-13b-hf']
             for b in [64, 16, 4, 1]
+            # for b in [16, 4, 1]
         ]
 
         for (dataset_name, binary_classification) in datasets_with_binary_list
@@ -111,7 +113,8 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
-    # gpu_ids=[0, 1, 2, 3],
-    gpu_ids=[[0, 1], [2, 3]],
+    gpu_ids=[0, 1, 2, 3],
+    # gpu_ids=[[0, 1], [2, 3]],
+    # gpu_ids=[[0, 1, 2, 3]],
     shuffle=False,
 )

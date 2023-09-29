@@ -8,44 +8,46 @@ import sys
 repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 
-assert len(sys.argv) == 2, "need to run like `python scripts/01_fit_knp.py <run_id>` where run_id in [0, 7]"
+assert len(
+    sys.argv) == 2, "need to run like `python scripts/01_fit_knp.py <run_id>` where run_id in [0, 7]"
 run_id = int(sys.argv[1])
-assert run_id in range(0, 8), f"invalid run_id {run_id}, must be in [0, 1, .., 7]"
+assert run_id in range(
+    0, 8), f"invalid run_id {run_id}, must be in [0, 1, .., 7]"
 
 
 datasets_for_run_id = {
-        0: [
-            ('knnp__agnews', 0),
-            ('knnp__cr', 1), 
-        ],
-        1: [
-            ('knnp__dbpedia', 0), 
-        ],
-        2: [
-            ('knnp__mpqa', 1), 
-            ('knnp__mr', 1), 
-        ],
-        3: [
-            ('knnp__rte', 1), 
-            ('emotion', 0),
-        ],
-        4: [
-            ('knnp__trec', 0),
-            ('sst2', 1),
-        ],
-        5: [
-            ('knnp__cb', 0), 
-            ('rotten_tomatoes', 1),
-        ],
-        6: [
-            ('knnp__subj', 1), 
-            ('knnp__sst2', 1), 
-        ],
-        7: [
-            ('imdb', 1),
-            ('financial_phrasebank', 0),
-        ]
-    }
+    0: [
+        ('knnp__agnews', 0),
+        ('knnp__cr', 1),
+    ],
+    1: [
+        ('knnp__dbpedia', 0),
+    ],
+    2: [
+        ('knnp__mpqa', 1),
+        # ('knnp__mr', 1),
+    ],
+    3: [
+        ('knnp__rte', 1),
+        ('emotion', 0),
+    ],
+    4: [
+        ('knnp__trec', 0),
+        ('sst2', 1),
+    ],
+    5: [
+        ('knnp__cb', 0),
+        ('rotten_tomatoes', 1),
+    ],
+    6: [
+        ('knnp__subj', 1),
+        # ('knnp__sst2', 1),
+    ],
+    7: [
+        ('imdb', 1),
+        ('financial_phrasebank', 0),
+    ]
+}
 
 
 # save_dir = '/home/chansingh/mntv1'
@@ -62,15 +64,15 @@ params_shared_dict = {
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
-    ('dataset_name', 'binary_classification', 
+    ('dataset_name', 'binary_classification',
      'model_name', 'checkpoint', 'batch_size', 'num_prompts',
      'prompt_source', 'verbalizer_num', 'num_data_demonstrations_per_class'): [
-        (dataset_name, binary_classification, 
+        (dataset_name, binary_classification,
          model_name, checkpoint, batch_size, num_prompts,
          prompt_source, verbalizer_num, num_data_demonstrations_per_class)
 
         for (checkpoint, batch_size) in [
-            (c, b) 
+            (c, b)
             # for c in [('gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B')]
             for c in [('meta-llama/Llama-2-7b-hf')]
             for b in [64, 16, 4, 1]
@@ -82,9 +84,9 @@ params_coupled_dict = {
             (mod_name, num_prompt)
             for mod_name in ['manual_tree', 'manual_ensemble', 'manual_single_prompt', 'manual_gbdt']
             for num_prompt in [40]
-        ] # + [('manual_gbdt', 40), ('manual_rf', 40)]
-        
-    
+        ]  # + [('manual_gbdt', 40), ('manual_rf', 40)]
+
+
         for (prompt_source, verbalizer_num, num_data_demonstrations_per_class) in [
             ('data_demonstrations', 0, 128),
         ]
@@ -98,6 +100,7 @@ args_list = submit_utils.get_args_list(
     params_coupled_dict=params_coupled_dict,
 )
 
+
 def get_gpu_ids() -> List[str]:
     """Get available GPUs on machine, but respect `CUDA_VISIBLE_DEVICES` env var."""
     if "CUDA_VISIBLE_DEVICES" in os.environ:
@@ -105,10 +108,11 @@ def get_gpu_ids() -> List[str]:
     else:
         return list(range(torch.cuda.device_count()))
 
+
 submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '01_fit.py'),
     actually_run=True,
-    gpu_ids = get_gpu_ids(),
+    gpu_ids=get_gpu_ids(),
     shuffle=False,
 )
