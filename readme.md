@@ -8,10 +8,6 @@
   <img src="https://img.shields.io/pypi/v/imodelsx?color=green">  
 </p>  
 
-<p align="center">
-  <img src="https://microsoft.github.io/augmented-interpretable-models/ovw.png" width="60%">
-</p>  
-
 
 ### Quickstart
 
