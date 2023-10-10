@@ -1,3 +1,4 @@
+from functools import partial
 import imodelsx.treeprompt.stump
 from sklearn.preprocessing import OneHotEncoder
 import sklearn.tree
@@ -39,27 +40,21 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel
 import torch
 sys.path.append('../experiments/')
 
-HOOK_WEIGHTS = None
 
+def modify_activations(module, inputs, outputs, hook_weights=None, prompt_at_start_or_end="end"):
+    if hook_weights is not None:
+        hook_weights = hook_weights.repeat((outputs.shape[0], 1, 1))
 
-def modify_activations(module, inputs, outputs):
-    # Define the hook function
-    # print(module)
-    global HOOK_WEIGHTS
-    if HOOK_WEIGHTS is not None:
-        hook_weights = torch.Tensor(HOOK_WEIGHTS).to(outputs.device)
-        batch_size = outputs.shape[0]
-
-        hook_weights = hook_weights.repeat((batch_size, 1, 1))
-
-        # hacky fix for weird err -- sometimes prompt is longer than sequence that should include the prompt
-        # (maybe weird tokenization issue merging a couple tokens)?
-        # NOTE: this block assumes that the prompt is at the end of the sequence
-        seq_len = min(hook_weights.shape[1], outputs.shape[1])
-        hook_weights = hook_weights[:, :seq_len, :]
-        outputs[:, -seq_len:, :] = hook_weights
-        # outputs = outputs * 0.9
-        # outputs[:, -5:, :] = 0
+        if prompt_at_start_or_end == "end":
+            # hacky fix for weirarerd err -- sometimes prompt is longer than sequence that should include the prompt
+            # Cause: tokenization issue merges a couple tokens
+            seq_len = min(hook_weights.shape[1], outputs.shape[1])
+            hook_weights = hook_weights[:, :seq_len, :]
+            outputs[:, -seq_len:, :] = hook_weights
+        elif prompt_at_start_or_end == "start":
+            seq_len = min(hook_weights.shape[1], outputs.shape[1])
+            hook_weights = hook_weights[:, seq_len:, :]
+            outputs[:, seq_len:, :] = hook_weights
 
     return outputs
 
@@ -103,9 +98,7 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
         global HOOK_WEIGHTS
         HOOK_WEIGHTS = hook_weights
         self.prompt_at_start_or_end = prompt_at_start_or_end
-        if not self.prompt_at_start_or_end == 'end':
-            raise ValueError(
-                'prompt at start not implemented yet (requires changing modify_activations)')
+        assert prompt_at_start_or_end in ["start", "end"]
 
     def fit(self, X, y):
         transformers.set_seed(self.random_state)
@@ -130,7 +123,9 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
         if self.hook_weights is not None:
             # register a forward hook on the "drop" layer
             hook = llm.transformer.drop.register_forward_hook(
-                modify_activations)
+                partial(modify_activations, hook_weights=self.hook_weights,
+                        prompt_at_start_or_end=self.prompt_at_start_or_end))
+            self.hook_weights = self.hook_weights.to(llm.device)
 
         stump = None
 
