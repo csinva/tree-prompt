@@ -21,7 +21,7 @@ required_pypi = [
 
 setuptools.setup(
     name="treeprompt",
-    version="0.4.2",
+    version="0.0.1",
     author="John X. Morris, Chandan Singh, Yuntian Deng, Sasha Rush",
     author_email="",
     description="Tree prompting",

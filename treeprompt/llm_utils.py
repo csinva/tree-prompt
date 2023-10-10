@@ -28,169 +28,6 @@ LLM_CONFIG = {
 }
 
 
-def get_llm(
-    checkpoint,
-    seed=1,
-    role: str = None,
-    repeat_delay: Optional[float] = None,
-    CACHE_DIR=LLM_CONFIG["CACHE_DIR"],
-    LLAMA_DIR=LLM_CONFIG["LLAMA_DIR"],
-):
-    if repeat_delay is not None:
-        LLM_CONFIG["LLM_REPEAT_DELAY"] = repeat_delay
-
-    """Get an LLM with a call function and caching capabilities"""
-    if checkpoint.startswith("text-da"):
-        return LLM_OpenAI(checkpoint, seed=seed, CACHE_DIR=CACHE_DIR)
-    elif checkpoint.startswith("gpt-3") or checkpoint.startswith("gpt-4"):
-        return LLM_Chat(checkpoint, seed, role, CACHE_DIR)
-    else:
-        # warning: this sets torch.manual_seed(seed)
-        return LLM_HF(checkpoint, seed=seed, CACHE_DIR=CACHE_DIR, LLAMA_DIR=LLAMA_DIR)
-
-
-class LLM_OpenAI:
-    def __init__(self, checkpoint, seed, CACHE_DIR):
-        self.cache_dir = join(
-            CACHE_DIR, "cache_openai", f'{checkpoint.replace("/", "_")}___{seed}'
-        )
-        self.checkpoint = checkpoint
-
-    def __call__(
-        self,
-        prompt: str,
-        max_new_tokens=250,
-        do_sample=True,
-        stop=None,
-        return_str=True,
-    ):
-        import openai
-
-        # cache
-        os.makedirs(self.cache_dir, exist_ok=True)
-        hash_str = hashlib.sha256(prompt.encode()).hexdigest()
-        cache_file = join(
-            self.cache_dir, f"{hash_str}__num_tok={max_new_tokens}.pkl")
-        if os.path.exists(cache_file):
-            return pkl.load(open(cache_file, "rb"))
-
-        response = openai.Completion.create(
-            engine=self.checkpoint,
-            prompt=prompt,
-            max_tokens=max_new_tokens,
-            temperature=0.1,
-            top_p=1,
-            frequency_penalty=0.25,  # maximum is 2
-            presence_penalty=0,
-            stop=stop,
-            # stop=["101"]
-        )
-        if return_str:
-            response = response["choices"][0]["text"]
-
-        pkl.dump(response, open(cache_file, "wb"))
-        return response
-
-
-class LLM_Chat:
-    """Chat models take a different format: https://platform.openai.com/docs/guides/chat/introduction"""
-
-    def __init__(self, checkpoint, seed, role, CACHE_DIR):
-        self.cache_dir = join(
-            CACHE_DIR, "cache_openai", f'{checkpoint.replace("/", "_")}___{seed}'
-        )
-        self.checkpoint = checkpoint
-        self.role = role
-
-    def __call__(
-        self,
-        prompts_list: List[Dict[str, str]],
-        max_new_tokens=250,
-        stop=None,
-        functions: List[Dict] = None,
-        return_str=True,
-        verbose=True,
-        temperature=0.1,
-        frequency_penalty=0.25,
-    ):
-        """
-        prompts_list: list of dicts, each dict has keys 'role' and 'content'
-            Example: [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Who won the world series in 2020?"},
-                {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-                {"role": "user", "content": "Where was it played?"}
-            ]
-        prompts_list: str
-            Alternatively, string which gets formatted into basic prompts_list:
-            messages = [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": <<<<<prompts_list>>>>},
-            ]
-        """
-        import openai
-
-        if isinstance(prompts_list, str):
-            role = self.role
-            if role is None:
-                role = "You are a helpful assistant."
-            prompts_list = [
-                {"role": "system", "content": role},
-                {"role": "user", "content": prompts_list},
-            ]
-
-        assert isinstance(prompts_list, list), prompts_list
-
-        # cache
-        os.makedirs(self.cache_dir, exist_ok=True)
-        prompts_list_dict = {
-            str(i): sorted(v.items()) for i, v in enumerate(prompts_list)
-        }
-        if not self.checkpoint == "gpt-3.5-turbo":
-            prompts_list_dict["checkpoint"] = self.checkpoint
-        if functions is not None:
-            prompts_list_dict["functions"] = functions
-        if temperature > 0.1:
-            prompts_list_dict["temperature"] = temperature
-        dict_as_str = json.dumps(prompts_list_dict, sort_keys=True)
-        hash_str = hashlib.sha256(dict_as_str.encode()).hexdigest()
-        cache_file = join(
-            self.cache_dir,
-            f"chat__{hash_str}__num_tok={max_new_tokens}.pkl",
-        )
-        if os.path.exists(cache_file):
-            if verbose:
-                print("cached!")
-                # print(cache_file)
-            # print(cache_file)
-            return pkl.load(open(cache_file, "rb"))
-        if verbose:
-            print("not cached")
-
-        kwargs = dict(
-            model=self.checkpoint,
-            messages=prompts_list,
-            max_tokens=max_new_tokens,
-            temperature=temperature,
-            top_p=1,
-            frequency_penalty=frequency_penalty,  # maximum is 2
-            presence_penalty=0,
-            stop=stop,
-            # stop=["101"]
-        )
-        if functions is not None:
-            kwargs["functions"] = functions
-
-        response = openai.ChatCompletion.create(**kwargs)
-
-        if return_str:
-            response = response["choices"][0]["message"]["content"]
-        # print(response)
-
-        pkl.dump(response, open(cache_file, "wb"))
-        return response
-
-
 def load_tokenizer(checkpoint: str) -> transformers.PreTrainedTokenizer:
     if "facebook/opt" in checkpoint:
         # opt can't use fast tokenizer
@@ -201,12 +38,10 @@ def load_tokenizer(checkpoint: str) -> transformers.PreTrainedTokenizer:
         return transformers.LlamaTokenizer.from_pretrained("chaoyi-wu/PMC_LLAMA_7B")
     else:
         return AutoTokenizer.from_pretrained(checkpoint)  # , use_fast=True)
-    # return AutoTokenizer.from_pretrained(checkpoint,
-    # token=os.environ.get("LLAMA_TOKEN"),)
 
 
 class LLM_HF:
-    def __init__(self, checkpoint, seed, CACHE_DIR, LLAMA_DIR=None):
+    def __init__(self, checkpoint, seed=1, CACHE_DIR=LLM_CONFIG["CACHE_DIR"], LLAMA_DIR=LLM_CONFIG["LLAMA_DIR"]):
         self._tokenizer = load_tokenizer(checkpoint)
 
         # set checkpoint
@@ -339,23 +174,7 @@ class LLM_HF:
 
 
 if __name__ == "__main__":
-    # llm = get_llm("text-davinci-003")
-    # text = llm("What do these have in common? Horse, ")
-    # print("text", text)
-
-    # llm = get_llm("gpt2")
-    # text = llm(
-    # """Continue this list
-    # - apple
-    # - banana
-    # -"""
-    # )
-    # print("text", text)
-    # tokenizer = transformers.LlamaTokenizer.from_pretrained("chaoyi-wu/PMC_LLAMA_7B")
-    # model = transformers.LlamaForCausalLM.from_pretrained("chaoyi-wu/PMC_LLAMA_7B")
-
-    # llm = get_llm("chaoyi-wu/PMC_LLAMA_7B")
-    llm = get_llm("llama_65b")
+    llm = LLM_HF("llama_65b")
     text = llm(
         """Continue this list
 - red
