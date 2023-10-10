@@ -1,5 +1,5 @@
 <h1 align="center"> Tree Prompting </h1>
-<p align="center"> Tree Prompting: Efficient Task Adaptation without Fine-Tuning. This repo contains code to reproduce the experiments in the <a href="">Tree-prompt paper</a>. For a simple scikit-learn interface to use Tree-Prompt, use the <a href="https://github.com/csinva/imodelsX">imodelsX package</a>.
+<p align="center"> Tree Prompting: Efficient Task Adaptation without Fine-Tuning, code for the <a href="">Tree-prompt paper</a>. 
 </p>
 
 <p align="center">
@@ -8,10 +8,12 @@
   <img src="https://img.shields.io/pypi/v/imodelsx?color=green">  
 </p>  
 
+<p align="center"> Tree Prompting uses training examples to learn a tree of prompts to make a classificationg, yielding higher accuracy and better efficiency that baseline ensembles.
+</p>
 
 ### Quickstart
 
-Installation: `pip install imodelsx`
+For a simple scikit-learn interface to use Tree-Prompt, use the <a href="https://github.com/csinva/imodelsX">imodelsX package</a>. Installation: `pip install imodelsx`
 
 ```python
 from imodelsx import TreePromptClassifier
