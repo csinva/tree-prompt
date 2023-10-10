@@ -62,63 +62,6 @@ def get_text_data(args):
     return X_train_text, X_test_text, y_train, y_test
 
 
-def evaluate_model(model, X_train, X_test,
-                   X_train_text, X_test_text,
-                   y_train, y_test, r):
-    """Evaluate model performance on each split
-    """
-    metrics = {
-        'accuracy': accuracy_score,
-        # 'precision': partial(precision_score, zero_division=0),
-        # 'recall': partial(recall_score, zero_division=0),
-        'balanced_accuracy': balanced_accuracy_score,
-    }
-    metrics_proba = {
-        'roc_auc': roc_auc_score,
-        # 'brier_score_loss': brier_score_loss,
-    }
-    metrics_proba_multiclass = {
-        'roc_auc': partial(roc_auc_score, multi_class='ovr'),
-    }
-    multiclass = len(np.unique(y_train)) > 2
-    for split_name, (X_text_, X_, y_) in zip(
-        ['train', 'test'],
-            [(X_train_text, X_train, y_train), (X_test_text, X_test, y_test)]):
-        # sometimes cv split may be none
-        if X_text_ is not None:
-
-            # metrics discrete
-            predict_parameters = inspect.signature(
-                model.predict).parameters.keys()
-            if 'X_text' in predict_parameters:
-                y_pred_ = model.predict(X_text=X_text_).astype(int)
-            else:
-                y_pred_ = model.predict(X_)
-            for metric_name, metric_fn in metrics.items():
-                r[f'{metric_name}_{split_name}'] = metric_fn(y_, y_pred_)
-
-            # metrics proba
-            if hasattr(model, 'predict_proba'):
-                if 'X_text' in predict_parameters:
-                    y_pred_proba_ = model.predict_proba(X_text=X_text_)
-                else:
-                    y_pred_proba_ = model.predict_proba(X_)
-                if not multiclass:
-                    y_pred_proba_ = y_pred_proba_[:, 1]
-                    for metric_name, metric_fn in metrics_proba.items():
-                        r[f'{metric_name}_{split_name}'] = metric_fn(
-                            y_, y_pred_proba_)
-                elif multiclass:
-                    for metric_name, metric_fn in metrics_proba_multiclass.items():
-                        try:
-                            r[f'{metric_name}_{split_name}'] = metric_fn(
-                                y_, y_pred_proba_)
-                        except:
-                            r[f'{metric_name}_{split_name}'] = -1
-
-    return r
-
-
 def add_main_args(parser):
     """Caching uses the non-default values from argparse to name the saving directory.
     Changing the default arg an argument will break cache compatibility with previous runs.

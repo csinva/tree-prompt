@@ -12,13 +12,13 @@ save_dir = '/home/chansingh/mntv1'
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    'save_dir': [join(save_dir, 'compiling', 'oct9')],
-    'prompt_at_start_or_end': ['end'],
+    'save_dir': [join(save_dir, 'compiling', 'oct10-knp')],
+    'prompt_at_start_or_end': ['start'],
     'cache_prompt_features_dir': ['/home/chansingh/features_compiling'],
     'num_prompts': [10],
+    'subsample_train': [10_000],
 }
 
-# List of tuples to sweep over (these values are coupled, and swept over together)
 params_coupled_dict = {
     ('dataset_name', 'binary_classification',
      'model_name', 'checkpoint', 'batch_size',
@@ -28,29 +28,37 @@ params_coupled_dict = {
          prompt_source, verbalizer_num, num_data_demonstrations_per_class)
 
         for (checkpoint, batch_size) in [
-            ('gpt2', 1),
-            ('gpt2-medium', 1),
-            ('gpt2-large', 1),
-            ('gpt2-xl', 1),
-            # ('EleutherAI/gpt-j-6B', 2),
-            # ('EleutherAI/gpt-j-6B', 1),
+            (c, b)
+            for c in ['gpt2', 'gpt2-large']
+            # for c in ['gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'EleutherAI/gpt-j-6B']
+            # for c in ['meta-llama/Llama-2-7b-hf']
+            for b in [64, 16, 4, 1]
         ]
 
         for (dataset_name, binary_classification) in [
-            ('rotten_tomatoes', 1),
-            ('sst2', 1),
-            # ('imdb', 1),
-            ('financial_phrasebank', 0),
+            # ('knnp__agnews', 0),
+            ('knnp__cr', 1),
+            # ('knnp__dbpedia', 0),
+            ('knnp__mpqa', 1),
+            # ('knnp__mr', 1),
+            ('knnp__rte', 1),
             ('emotion', 0),
+            ('knnp__trec', 0),
+            # ('sst2', 1),
+            ('knnp__cb', 0),
+            ('rotten_tomatoes', 1),
+            ('knnp__subj', 1),
+            # ('knnp__sst2', 1),
+            # ('imdb', 1),
+            # ('financial_phrasebank', 0),
         ]
 
         for model_name in ['single_prompt']
 
 
         for (prompt_source, verbalizer_num, num_data_demonstrations_per_class) in [
-            ('manual', 0, 1),
+            ('data_demonstrations', 0, 128),
         ]
-
     ],
 }
 
@@ -70,6 +78,7 @@ def get_gpu_ids() -> List[str]:
         return list(range(torch.cuda.device_count()))
 
 
+args_list = args_list[:1]
 submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '02_fit_compiling.py'),
