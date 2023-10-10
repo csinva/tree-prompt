@@ -39,19 +39,29 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel
 import torch
 sys.path.append('../experiments/')
 
-OUTPUTS_ALL = {}
-GLOBAL_COUNTER = 0
+HOOK_WEIGHTS = None
 
 
 def modify_activations(module, inputs, outputs):
-    global OUTPUTS_ALL
-    global GLOBAL_COUNTER
-
     # Define the hook function
-    print(module)
-    OUTPUTS_ALL[GLOBAL_COUNTER] = outputs
-    GLOBAL_COUNTER += 1
-    return outputs * 3  # * 0.01
+    # print(module)
+    global HOOK_WEIGHTS
+    if HOOK_WEIGHTS is not None:
+        hook_weights = torch.Tensor(HOOK_WEIGHTS).to(outputs.device)
+        batch_size = outputs.shape[0]
+
+        hook_weights = hook_weights.repeat((batch_size, 1, 1))
+
+        # hacky fix for weird err -- sometimes prompt is longer than sequence that should include the prompt
+        # (maybe weird tokenization issue merging a couple tokens)?
+        # NOTE: this block assumes that the prompt is at the end of the sequence
+        seq_len = min(hook_weights.shape[1], outputs.shape[1])
+        hook_weights = hook_weights[:, :seq_len, :]
+        outputs[:, -seq_len:, :] = hook_weights
+        # outputs = outputs * 0.9
+        # outputs[:, -5:, :] = 0
+
+    return outputs
 
 
 class PromptHooker(BaseEstimator, ClassifierMixin):
@@ -67,7 +77,8 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
         device=None,
         verbose: bool = True,
         random_state: int = 42,
-        hook_weights: List[float] = None,
+        hook_weights=None,  # torch.Tensor
+        prompt_at_start_or_end: str = "end",
     ):
         '''
         Params
@@ -89,6 +100,12 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
         self.verbose = verbose
         self.random_state = random_state
         self.hook_weights = hook_weights
+        global HOOK_WEIGHTS
+        HOOK_WEIGHTS = hook_weights
+        self.prompt_at_start_or_end = prompt_at_start_or_end
+        if not self.prompt_at_start_or_end == 'end':
+            raise ValueError(
+                'prompt at start not implemented yet (requires changing modify_activations)')
 
     def fit(self, X, y):
         transformers.set_seed(self.random_state)
@@ -111,6 +128,7 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
             llm = llm.to(self.device)
 
         if self.hook_weights is not None:
+            # register a forward hook on the "drop" layer
             hook = llm.transformer.drop.register_forward_hook(
                 modify_activations)
 
@@ -177,6 +195,7 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
             # save prompt features
             prompt_features[:, i] = prompt_features_i
 
+        # remove hook
         if self.hook_weights is not None:
             hook.remove()
 
