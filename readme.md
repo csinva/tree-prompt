@@ -8,15 +8,15 @@
   <img src="https://img.shields.io/pypi/v/imodelsx?color=green">  
 </p>  
 
-<p align="center"> Tree Prompting uses training examples to learn a tree of prompts to make a classificationg, yielding higher accuracy and better efficiency that baseline ensembles.
+<p align="center"> Tree Prompting uses training examples to learn a tree of prompts to make a classification, yielding higher accuracy and better efficiency that baseline ensembles.
 </p>
 
 ### Quickstart
 
-For a simple scikit-learn interface to use Tree-Prompt, use the <a href="https://github.com/csinva/imodelsX">imodelsX package</a>. Installation: `pip install imodelsx`
+Installation: `pip install treeprompt` (or clone this repo and `pip install -e .`)
 
 ```python
-from imodelsx import TreePromptClassifier
+from treeprompt.treeprompt import TreePromptClassifier
 import datasets
 import numpy as np
 from sklearn.tree import plot_tree
@@ -85,14 +85,4 @@ Reference:
 
 # Reproducing experiments
 
-### Organization
-- `tprompt`: contains main code for modeling (e.g. model architecture)
-- `experiments`: code for runnning experiments (e.g. loading data, training models, evaluating models)
-- `scripts`: scripts for running experiments (e.g. python scripts that launch jobs in `experiments` folder with different hyperparams)
-- `notebooks`: jupyter notebooks for analyzing results and making figures
-- `tests`: unit tests
-
-### Setup
-- clone and run `pip install -e .`, resulting in a package named `tprompt` that can be imported
-    - see `setup.py` for dependencies, not all are required
-- example run: run `python scripts/01_train_basic_models.py` (which calls `experiments/01_train_model.py` then view the results in `notebooks/01_model_results.ipynb`
+See the full code for reproducing all experiments in the paper at https://github.com/csinva/tree-prompt-experiments

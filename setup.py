@@ -10,31 +10,24 @@ required_pypi = [
     'datasets',
     'dict_hash',
     'imodels',
-    'langchain',
     'numpy',
     'pandas',
     'scikit-learn',
     'scipy',
-    'spacy',
     'torch',
     'tqdm',
     'transformers[torch] >= 4.23.1',
-
-
-    # 'InstructorEmbedding', # embeddings for emb_diff_module
-    # 'sentence-transformers', # embeddings for emb_diff_module
-    # pdoc3 # for generating docs
 ]
 
 setuptools.setup(
-    name="imodelsx",
+    name="treeprompt",
     version="0.4.2",
-    author="Chandan Singh, John X. Morris, Armin Askari, Divyanshu Aggarwal, Aliyah Hsu",
-    author_email="chansingh@microsoft.com",
-    description="Library to explain a dataset in natural language.",
+    author="John X. Morris, Chandan Singh, Yuntian Deng, Sasha Rush",
+    author_email="",
+    description="Tree prompting",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/csinva/imodelsX",
+    url="https://github.com/csinva/tree-prompt",
     packages=setuptools.find_packages(
         exclude=['tests', 'tests.*', '*.test.*']
     ),

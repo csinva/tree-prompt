@@ -15,7 +15,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.preprocessing import OneHotEncoder
 
-import imodelsx.treeprompt.stump
+import treeprompt.stump
+import treeprompt.llm_utils
 
 
 class TreePromptClassifier(BaseEstimator, ClassifierMixin):
@@ -89,7 +90,7 @@ class TreePromptClassifier(BaseEstimator, ClassifierMixin):
 
     def _calc_prompt_features(self, X, prompts):
         prompt_features = np.zeros((len(X), len(prompts)))
-        llm = imodelsx.llm.get_llm(self.checkpoint)._model
+        llm = treeprompt.llm_utils.get_llm(self.checkpoint)._model
         if self.device is not None:
             llm = llm.to(self.device)
         stump = None
@@ -118,7 +119,7 @@ class TreePromptClassifier(BaseEstimator, ClassifierMixin):
 
             if not loaded_from_cache:
                 if stump is None:
-                    stump = imodelsx.treeprompt.stump.PromptStump(
+                    stump = treeprompt.stump.PromptStump(
                         model=llm,
                         checkpoint=self.checkpoint,
                         verbalizer=self.verbalizer,

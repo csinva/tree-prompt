@@ -1,17 +1,12 @@
 from typing import Dict, List
 
-from abc import ABC, abstractmethod
 import logging
 import math
-import random
-import imodels
 import numpy as np
 from scipy.special import softmax
-from sklearn.metrics import accuracy_score
-from sklearn.linear_model import LogisticRegression
 import torch.cuda
 import tqdm
-import imodelsx.llm
+import treeprompt.llm_utils
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
@@ -63,7 +58,8 @@ class PromptStump:
         self.checkpoint = checkpoint
         self.model = model
         if tokenizer is None:
-            self.tokenizer = imodelsx.llm.load_tokenizer(checkpoint)
+            self.tokenizer = treeprompt.llm_utils.load_tokenizer(
+                checkpoint)
         else:
             self.tokenizer = tokenizer
         self.batch_size = batch_size

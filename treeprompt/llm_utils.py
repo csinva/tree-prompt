@@ -19,9 +19,8 @@ import time
 
 # change these settings before using these classes!
 LLM_CONFIG = {
-    "LLM_REPEAT_DELAY": None,  # how long to wait before recalling a failed llm call (can set to None)
     "CACHE_DIR": join(
-        os.path.expanduser("~"), "clin/CACHE_OPENAI"
+        os.path.expanduser("~"), ".CACHE_OPENAI"
     ),  # path to save cached llm outputs
     "LLAMA_DIR": join(
         os.path.expanduser("~"), "llama"
@@ -50,34 +49,6 @@ def get_llm(
         return LLM_HF(checkpoint, seed=seed, CACHE_DIR=CACHE_DIR, LLAMA_DIR=LLAMA_DIR)
 
 
-def repeatedly_call_with_delay(llm_call):
-    def wrapper(*args, **kwargs):
-        # Number of seconds to wait between calls (None will not repeat)
-        delay = LLM_CONFIG["LLM_REPEAT_DELAY"]
-        response = None
-        while response is None:
-            try:
-                response = llm_call(*args, **kwargs)
-
-                # fix for when this function was returning response rather than string
-                # if response is not None and not isinstance(response, str):
-                # response = response["choices"][0]["message"]["content"]
-            except Exception as e:
-                e = str(e)
-                print(e)
-                if "does not exist" in e:
-                    return None
-                elif "maximum context length" in e:
-                    return None
-                if delay is None:
-                    raise e
-                else:
-                    time.sleep(delay)
-        return response
-
-    return wrapper
-
-
 class LLM_OpenAI:
     def __init__(self, checkpoint, seed, CACHE_DIR):
         self.cache_dir = join(
@@ -85,7 +56,6 @@ class LLM_OpenAI:
         )
         self.checkpoint = checkpoint
 
-    @repeatedly_call_with_delay
     def __call__(
         self,
         prompt: str,
@@ -99,7 +69,8 @@ class LLM_OpenAI:
         # cache
         os.makedirs(self.cache_dir, exist_ok=True)
         hash_str = hashlib.sha256(prompt.encode()).hexdigest()
-        cache_file = join(self.cache_dir, f"{hash_str}__num_tok={max_new_tokens}.pkl")
+        cache_file = join(
+            self.cache_dir, f"{hash_str}__num_tok={max_new_tokens}.pkl")
         if os.path.exists(cache_file):
             return pkl.load(open(cache_file, "rb"))
 
@@ -131,7 +102,6 @@ class LLM_Chat:
         self.checkpoint = checkpoint
         self.role = role
 
-    @repeatedly_call_with_delay
     def __call__(
         self,
         prompts_list: List[Dict[str, str]],
@@ -226,7 +196,7 @@ def load_tokenizer(checkpoint: str) -> transformers.PreTrainedTokenizer:
         # opt can't use fast tokenizer
         return AutoTokenizer.from_pretrained(checkpoint, use_fast=False)
     elif "llama_" in checkpoint:
-        return transformers.LlamaTokenizer.from_pretrained(join(LLAMA_DIR, checkpoint))
+        return transformers.LlamaTokenizer.from_pretrained(join(LLM_CONFIG['LLAMA_DIR'], checkpoint))
     elif "PMC_LLAMA" in checkpoint:
         return transformers.LlamaTokenizer.from_pretrained("chaoyi-wu/PMC_LLAMA_7B")
     else:
@@ -327,17 +297,17 @@ class LLM_HF:
             out_str = self._tokenizer.decode(outputs[0])
             # print('out_str', out_str)
             if "facebook/opt" in self.checkpoint:
-                out_str = out_str[len("</s>") + len(prompt) :]
+                out_str = out_str[len("</s>") + len(prompt):]
             elif "google/flan" in self.checkpoint:
                 # print("full", out_str)
-                out_str = out_str[len("<pad>") : out_str.index("</s>")]
+                out_str = out_str[len("<pad>"): out_str.index("</s>")]
             elif "PMC_LLAMA" in self.checkpoint:
                 # print('here!', out_str)
-                out_str = out_str[len("<unk>") + len(prompt) :]
+                out_str = out_str[len("<unk>") + len(prompt):]
             elif "llama_" in self.checkpoint:
-                out_str = out_str[len("<s>") + len(prompt) :]
+                out_str = out_str[len("<s>") + len(prompt):]
             else:
-                out_str = out_str[len(prompt) :]
+                out_str = out_str[len(prompt):]
 
             if stop is not None and isinstance(stop, str) and stop in out_str:
                 out_str = out_str[: out_str.index(stop)]
