@@ -52,8 +52,8 @@ def modify_activations(module, inputs, outputs, hook_weights=None, prompt_at_sta
             outputs[:, -seq_len:, :] = hook_weights
         elif prompt_at_start_or_end == "start":
             seq_len = min(hook_weights.shape[1], outputs.shape[1])
-            hook_weights = hook_weights[:, seq_len:, :]
-            outputs[:, seq_len:, :] = hook_weights
+            hook_weights = hook_weights[:, -seq_len:, :]
+            outputs[:, :seq_len, :] = hook_weights
 
     return outputs
 
@@ -129,7 +129,8 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
         stump = None
 
         for i, prompt in enumerate(prompts):
-            print(f"Prompt {i}: {prompt}")
+            if self.verbose:
+                print(f"Prompt {i}: {prompt}")
 
             loaded_from_cache = False
             if self.cache_prompt_features_dir is not None:
@@ -143,7 +144,8 @@ class PromptHooker(BaseEstimator, ClassifierMixin):
 
                 # load from cache if possible
                 if os.path.exists(cache_file):
-                    print("loading from cache!")
+                    if self.verbose:
+                        print("loading from cache!")
                     try:
                         prompt_features_i = joblib.load(cache_file)
                         loaded_from_cache = True

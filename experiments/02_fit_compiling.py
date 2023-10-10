@@ -137,6 +137,11 @@ if __name__ == '__main__':
         exit(0)
     args.verbalizer = tprompt.prompts.get_verbalizer(args)
 
+    # newly added this for compatibility!
+    if not isinstance(args.verbalizer, dict):
+        args.verbalizer = {k: args.verbalizer.verbalizer[args.verbalizer.id2label[k]]
+                           for k in args.verbalizer.id2label.keys()}
+
     # set up logging
     logger = logging.getLogger()
     logging.basicConfig(level=logging.INFO)
@@ -168,45 +173,49 @@ if __name__ == '__main__':
     prompts = tprompt.prompts.get_prompts(
         args, X_train_text, y_train, args.verbalizer, seed=1  # note, not passing seed here!
     )[:args.num_prompts]
-    avg_soft_prompt = compiling.get_avg_soft_prompt(args.checkpoint, prompts)
-
-    # score avg model
     tok = AutoTokenizer.from_pretrained(args.checkpoint)
     lens = [len(tok.encode(x)) for x in prompts]
+
+    # compile prompts
+    # print('prompts', len(prompts), lens)
+    avg_soft_prompt = compiling.get_avg_soft_prompt(args.checkpoint, prompts)
+    # print('avg_soft_prompt', avg_soft_prompt.shape)
+
+    # score avg model
     longest_prompt_idx = np.argmax(lens)
+    kwargs = {
+        'checkpoint': args.checkpoint,
+        'verbalizer': args.verbalizer,
+        'cache_prompt_features_dir': None,
+        'random_state': args.seed,
+        'prompt_at_start_or_end': args.prompt_at_start_or_end,
+        'prompt_template': "{example}{prompt}",
+    }
     m = PromptHooker(
-        checkpoint=args.checkpoint,
-        # this should probably be the prompt with the max num tokens?
         prompts=[prompts[longest_prompt_idx]],
-        verbalizer=args.verbalizer,
-        cache_prompt_features_dir=None,
-        random_state=args.seed,
         hook_weights=avg_soft_prompt,
-        prompt_at_start_or_end=args.prompt_at_start_or_end,
-        prompt_template="{example}{prompt}",
+        verbose=False,
+        **kwargs,
     )
     m.fit(X_train_text, y_train)
-    r['accs_avg'] = m.prompt_accs_[0]
+    r['acc_compiled'] = m.prompt_accs_[0]
 
     # score individual models
     m = PromptHooker(
-        checkpoint=args.checkpoint,
-        # this should probably be the prompt with the max num tokens?
         prompts=prompts,
-        verbalizer=args.verbalizer,
-        cache_prompt_features_dir=args.cache_prompt_features_dir,
-        random_state=args.seed,
-        hook_weights=avg_soft_prompt,
-        prompt_at_start_or_end=args.prompt_at_start_or_end,
-        prompt_template="{example}{prompt}",
+        hook_weights=None,
+        verbose=False,
+        **kwargs,
     )
     m.fit(X_train_text, y_train)
-    accs0 = deepcopy(m.prompt_accs_)
+    accs_single = deepcopy(m.prompt_accs_)
 
     # set up saving dictionary + save params file
     r.update(vars(args))
-    r['accs_single'] = m.prompt_accs_
-    print('Avg', r['accs_avg'], 'Sing', r['accs_single'])
+    r['accs_single'] = accs_single
+    r['acc_single_mean'] = np.mean(accs_single)
+    r['acc_single_max'] = np.max(accs_single)
+    # print('Avg', r['acc_compiled'], 'Sing', r['accs_single'])
 
     r['prompts'] = prompts
     r['save_dir_unique'] = save_dir_unique

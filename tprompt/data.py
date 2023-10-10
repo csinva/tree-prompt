@@ -16,8 +16,8 @@ KNNPROMPTING_DATA_LABELS = {
     'cb': {'contradiction': 0, 'entailment': 1, 'neutral': 2},
     'cr': {'0': 0, '1': 1},
     'dbpedia': {'1': 0, '2': 1, '3': 2, '4': 3, '5': 4,
-                         '6': 5, '7': 6, '8': 7, '9': 8, '10': 9,
-                         '11': 10, '12': 11, '13': 12, '14': 13},
+                '6': 5, '7': 6, '8': 7, '9': 8, '10': 9,
+                '11': 10, '12': 11, '13': 12, '14': 13},
     'mpqa': {'0': 0, '1': 1},
     'mr': {'0': 0, '1': 1},
     'rte': {'not_entailment': 0, 'entailment': 1},
@@ -28,7 +28,7 @@ KNNPROMPTING_DATA_LABELS = {
 }
 
 # https://github.com/BenfengXu/KNNPrompting/blob/050d7e455113c0afa82de1537210007c34e96e57/utils/template.py#L96
-KNNPROMPTING_DATA_TEMPLATE_FNS = { 
+KNNPROMPTING_DATA_TEMPLATE_FNS = {
     'agnews': lambda ins, label: f"input: {ins['sentence']}\ntype:",
     'cb': lambda ins, label: f"premise: {ins['premise']}\nhypothesis: {ins['hypothesis']}\nprediction:",
     'cr': lambda ins, label: f"Review: {ins['sentence']}\nSentiment:",
@@ -48,15 +48,15 @@ KNNPROMPTING_VERBALIZERS = {
     'cb': {'contradiction': 'false', 'entailment': 'true', 'neutral': 'neither'},
     'cr': {'0': 'negative', '1': 'positive'},
     'dbpedia': {'1': 'company', '2': 'school', '3': 'artist', '4': 'athlete', '5': 'politics',
-                           '6': 'transportation', '7': 'building', '8': 'nature', '9': 'village', '10': 'animal',
-                           '11': 'plant', '12': 'album', '13': 'film', '14': 'book'},
+                '6': 'transportation', '7': 'building', '8': 'nature', '9': 'village', '10': 'animal',
+                '11': 'plant', '12': 'album', '13': 'film', '14': 'book'},
     'mpqa': {'0': 'negative', '1': 'positive'},
     'mr': {'0': 'negative', '1': 'positive'},
     'rte': {'not_entailment': 'false', 'entailment': 'true'},
     'sst2': {'0': 'negative', '1': 'positive'},
     'sst5':  {'0': 'terrible', '1': 'bad', '2': 'okay', '3': 'good', '4': 'great'},
     'subj': {'0': 'subjective', '1': 'objective'},
-    'trec': {'0': 'description', '1': 'entity', '2': 'expression', '3': 'human','4': 'location', '5': 'number'},
+    'trec': {'0': 'description', '1': 'entity', '2': 'expression', '3': 'human', '4': 'location', '5': 'number'},
 }
 
 
@@ -80,7 +80,7 @@ def _load_knnprompting_dataset_file(
 
 def load_knnprompting_dataset(
     dataset_name: str, subsample_n: int
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     tprompt_dir_path = os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
@@ -91,12 +91,13 @@ def load_knnprompting_dataset(
     dataset_folder = os.path.join(
         tprompt_dir_path, 'data', dataset_name
     )
-    assert os.path.exists(dataset_folder), f"could not find dataset folder at path {dataset_folder}"
+    assert os.path.exists(
+        dataset_folder), f"could not find dataset folder at path {dataset_folder}"
     # contains ['train.json', 'test.jsonl', 'dev_subsample.jsonl', 'classes.txt']
 
     assert dataset_name in KNNPROMPTING_DATA_LABELS, f'invalid dataset name {dataset_name}'
     label_mapping = KNNPROMPTING_DATA_LABELS[dataset_name]
-    
+
     train_filename = 'train_subset.jsonl' if dataset_name == 'dbpedia' else 'train.jsonl'
     X_train, y_train = _load_knnprompting_dataset_file(
         os.path.join(dataset_folder, train_filename),
@@ -105,7 +106,8 @@ def load_knnprompting_dataset(
 
     if subsample_n > 0:
         if subsample_n < len(X_train):
-            print(f"subsampling dataset {dataset_name} from length {len(X_train)} to {subsample_n}")
+            print(
+                f"subsampling dataset {dataset_name} from length {len(X_train)} to {subsample_n}")
             idxs = np.random.choice(range(len(X_train)), size=subsample_n)
             X_train = X_train[idxs]
             y_train = y_train[idxs]
@@ -123,17 +125,18 @@ def load_knnprompting_dataset(
 
 class KnnPromptVerbalizer:
     def __init__(self, dataset_name):
-        self.id2label = {v: k for k,v in KNNPROMPTING_DATA_LABELS[dataset_name].items()}
+        self.id2label = {v: k for k,
+                         v in KNNPROMPTING_DATA_LABELS[dataset_name].items()}
         self.verbalizer = KNNPROMPTING_VERBALIZERS[dataset_name]
         self._values = [f" {v}" for v in self.verbalizer.values()]
-    
+
     def __str__(self):
         return str(self.id2label)
-    
+
     def __getitem__(self, id_num: int) -> str:
         label = self.id2label[id_num]
         return " " + self.verbalizer[label]
-    
+
     def values(self) -> Iterable[int]:
         return self._values
 
@@ -141,3 +144,11 @@ class KnnPromptVerbalizer:
 def get_verbalizer_knnprompting(dataset_name: str):
     return KnnPromptVerbalizer(dataset_name)
 
+
+if __name__ == '__main__':
+    verb = get_verbalizer_knnprompting('sst2')
+    print(verb.id2label)
+    print(verb.verbalizer)
+    verb_dict = {k: verb.verbalizer[verb.id2label[k]]
+                 for k in verb.id2label.keys()}
+    print(verb_dict)

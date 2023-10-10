@@ -57,7 +57,7 @@ params_coupled_dict = {
 
 
         for (prompt_source, verbalizer_num, num_data_demonstrations_per_class) in [
-            ('data_demonstrations', 0, 128),
+            ('data_demonstrations', 0, 4),  # was 128
         ]
     ],
 }
@@ -78,7 +78,7 @@ def get_gpu_ids() -> List[str]:
         return list(range(torch.cuda.device_count()))
 
 
-args_list = args_list[:1]
+# args_list = args_list[:1]
 submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '02_fit_compiling.py'),

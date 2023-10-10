@@ -294,7 +294,7 @@ def get_prompts(args, X_train_text, y_train, verbalizer, seed=1):
             raise ValueError("need to set prompt in get_prompts!")
     elif args.prompt_source == "data_demonstrations":
         template = args.template_data_demonstrations
-        # 1, 0 since positive usually comes first
+        # decreasing since positive usually comes first
         unique_ys = sorted(list(set(y_train)), key=lambda x: -x)
         examples_by_y = {}
         for y in unique_ys:
