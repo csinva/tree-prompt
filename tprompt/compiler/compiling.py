@@ -1,4 +1,4 @@
-from evaluator import PromptHooker, modify_activations
+# from evaluator import PromptHooker, modify_activations
 import imodelsx.treeprompt.stump
 from sklearn.preprocessing import OneHotEncoder
 import sklearn.tree
@@ -13,7 +13,6 @@ import imodelsx.process_results
 from collections import defaultdict
 import numpy as np
 from copy import deepcopy
-import viz
 import transformers
 import sys
 import tprompt.utils

@@ -11,7 +11,6 @@ import pandas as pd
 import imodelsx.process_results
 from collections import defaultdict
 import numpy as np
-import viz
 import transformers
 import sys
 import tprompt.utils
