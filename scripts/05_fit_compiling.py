@@ -12,7 +12,7 @@ save_dir = '/home/chansingh/mntv1'
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [1],
-    'save_dir': [join(save_dir, 'compiling', 'oct9')],
+    'save_dir': [join(save_dir, 'compiling', 'oct10')],
     'prompt_at_start_or_end': ['end'],
     'cache_prompt_features_dir': ['/home/chansingh/features_compiling'],
     'subsample_train_size': [300],

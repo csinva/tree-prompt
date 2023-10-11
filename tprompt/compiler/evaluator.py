@@ -44,15 +44,16 @@ def modify_activations(module, inputs, outputs, hook_weights=None, prompt_at_sta
     if hook_weights is not None:
         hook_weights = hook_weights.repeat((outputs.shape[0], 1, 1))
 
+        # hacky fix for rare err -- sometimes prompt is longer than sequence
+        # weird because sequence should include the prompt
+        # Cause: tokenization issue merges a couple tokens
+        # keep only the end of the prompt
+        seq_len = min(hook_weights.shape[1], outputs.shape[1])
+        hook_weights = hook_weights[:, -seq_len:, :]
+
         if prompt_at_start_or_end == "end":
-            # hacky fix for weirarerd err -- sometimes prompt is longer than sequence that should include the prompt
-            # Cause: tokenization issue merges a couple tokens
-            seq_len = min(hook_weights.shape[1], outputs.shape[1])
-            hook_weights = hook_weights[:, :seq_len, :]
             outputs[:, -seq_len:, :] = hook_weights
         elif prompt_at_start_or_end == "start":
-            seq_len = min(hook_weights.shape[1], outputs.shape[1])
-            hook_weights = hook_weights[:, -seq_len:, :]
             outputs[:, :seq_len, :] = hook_weights
 
     return outputs

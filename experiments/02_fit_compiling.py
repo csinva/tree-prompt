@@ -202,7 +202,6 @@ if __name__ == '__main__':
     kwargs = {
         'checkpoint': args.checkpoint,
         'verbalizer': args.verbalizer,
-        'cache_prompt_features_dir': None,
         'random_state': args.seed,
         'prompt_at_start_or_end': args.prompt_at_start_or_end,
         'prompt_template': "{example}{prompt}",
@@ -211,6 +210,7 @@ if __name__ == '__main__':
         prompts=[prompts[longest_prompt_idx]],
         hook_weights=avg_soft_prompt,
         verbose=False,
+        cache_prompt_features_dir=join(args.cache_prompt_features_dir, 'avg'),
         **kwargs,
     )
     m.fit(X_train_text, y_train)
@@ -221,6 +221,7 @@ if __name__ == '__main__':
         prompts=prompts,
         hook_weights=None,
         verbose=False,
+        cache_prompt_features_dir=args.cache_prompt_features_dir,
         **kwargs,
     )
     m.fit(X_train_text, y_train)
