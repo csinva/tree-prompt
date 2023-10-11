@@ -52,13 +52,17 @@ def get_text_data(args):
                        for x in X_test_text]
 
     if args.subsample_train_size > 0:
-        sss = args.subsample_train_size
-        X_train_text = X_train_text[:sss]
-        y_train = y_train[:sss]
+        rng = np.random.default_rng(args.seed)
+        idx = rng.choice(len(X_train_text),
+                         args.subsample_train_size, replace=False)
+        X_train_text = [X_train_text[i] for i in idx]
+        y_train = y_train[idx]
     if args.subsample_test_size > 0:
-        sss = args.subsample_test_size
-        X_test_text = X_test_text[:sss]
-        y_test = y_test[:sss]
+        rng = np.random.default_rng(args.seed + 1)
+        idx = rng.choice(len(X_test_text),
+                         args.subsample_test_size, replace=False)
+        X_test_text = [X_test_text[i] for i in idx]
+        y_test = y_test[idx]
     return X_train_text, X_test_text, y_train, y_test
 
 
@@ -87,8 +91,6 @@ def add_main_args(parser):
                         help='the underlying model used for prediction (or for constructing features from prompt)')
     parser.add_argument('--verbalizer_num', type=int, default=0,
                         help='which verbalizer to use')
-    parser.add_argument('--num_prompts', type=int,
-                        default=10, help='number of prompts to use')
     parser.add_argument('--prompt_source', type=str, default='manual', choices=['manual', 'data_demonstrations'],
                         help='''where prompts come from. Setting to manual would use PROMPTS_MOVIE_0, and data_demonstrations
                         would use example demonstrations from training set.''')
@@ -104,6 +106,11 @@ def add_main_args(parser):
                         default=300, help='Amount to subsample the training data')
     parser.add_argument('--subsample_test_size', type=int,
                         default=300, help='Amount to subsample the testing data')
+
+    parser.add_argument('--num_prompts', type=int,
+                        default=40, help='number of prompts to use')
+    parser.add_argument('--filter_by_median', type=int, default=10,
+                        help='If > 0, number of prompts to keep (closest to the median)')
     return parser
 
 
@@ -174,15 +181,24 @@ if __name__ == '__main__':
         args, X_train_text, y_train, args.verbalizer, seed=1  # note, not passing seed here!
     )[:args.num_prompts]
     tok = AutoTokenizer.from_pretrained(args.checkpoint)
-    lens = [len(tok.encode(x)) for x in prompts]
+    lengths_in_tokens = [len(tok.encode(x)) for x in prompts]
+
+    # filter by median
+    if args.filter_by_median > 0:
+        median = np.median(lengths_in_tokens)
+        idx = np.argsort(np.abs(np.array(lengths_in_tokens) - median))
+        prompts = [prompts[i] for i in idx[:args.filter_by_median]]
+        lengths_in_tokens = [lengths_in_tokens[i]
+                             for i in idx[:args.filter_by_median]]
 
     # compile prompts
     # print('prompts', len(prompts), lens)
+    print('lengths_in_tokens', lengths_in_tokens)
     avg_soft_prompt = compiling.get_avg_soft_prompt(args.checkpoint, prompts)
     # print('avg_soft_prompt', avg_soft_prompt.shape)
 
     # score avg model
-    longest_prompt_idx = np.argmax(lens)
+    longest_prompt_idx = np.argmax(lengths_in_tokens)
     kwargs = {
         'checkpoint': args.checkpoint,
         'verbalizer': args.verbalizer,

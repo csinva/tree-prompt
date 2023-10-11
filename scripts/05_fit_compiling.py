@@ -15,7 +15,10 @@ params_shared_dict = {
     'save_dir': [join(save_dir, 'compiling', 'oct9')],
     'prompt_at_start_or_end': ['end'],
     'cache_prompt_features_dir': ['/home/chansingh/features_compiling'],
-    'num_prompts': [10],
+    'subsample_train_size': [300],
+
+    'num_prompts': [80],
+    'filter_by_median': [10],
 }
 
 # List of tuples to sweep over (these values are coupled, and swept over together)
@@ -29,9 +32,9 @@ params_coupled_dict = {
 
         for (checkpoint, batch_size) in [
             ('gpt2', 1),
-            ('gpt2-medium', 1),
+            # ('gpt2-medium', 1),
             ('gpt2-large', 1),
-            ('gpt2-xl', 1),
+            # ('gpt2-xl', 1),
             # ('EleutherAI/gpt-j-6B', 2),
             # ('EleutherAI/gpt-j-6B', 1),
         ]
