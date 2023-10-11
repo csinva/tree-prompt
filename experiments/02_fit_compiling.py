@@ -33,7 +33,7 @@ def get_text_data(args):
         # format like knnprompting__imdb
         dataset_name = args.dataset_name.split('__')[1]
         X_train_text, X_test_text, y_train, y_test = tprompt.data.load_knnprompting_dataset(
-            dataset_name, 100  # 10_000
+            dataset_name, 10_000
         )
         # Essentially disable templating in favor of knnprompt templating
         args.template_data_demonstrations = '%s%s'
@@ -52,15 +52,15 @@ def get_text_data(args):
                        for x in X_test_text]
 
     if args.subsample_train_size > 0:
+        sss = min(args.subsample_train_size, len(X_train_text))
         rng = np.random.default_rng(args.seed)
-        idx = rng.choice(len(X_train_text),
-                         args.subsample_train_size, replace=False)
+        idx = rng.choice(len(X_train_text), sss, replace=False)
         X_train_text = [X_train_text[i] for i in idx]
         y_train = y_train[idx]
     if args.subsample_test_size > 0:
+        sss = min(args.subsample_test_size, len(X_test_text))
         rng = np.random.default_rng(args.seed + 1)
-        idx = rng.choice(len(X_test_text),
-                         args.subsample_test_size, replace=False)
+        idx = rng.choice(len(X_test_text), sss, replace=False)
         X_test_text = [X_test_text[i] for i in idx]
         y_test = y_test[idx]
     return X_train_text, X_test_text, y_train, y_test
@@ -190,10 +190,10 @@ if __name__ == '__main__':
         prompts = [prompts[i] for i in idx[:args.filter_by_median]]
         lengths_in_tokens = [lengths_in_tokens[i]
                              for i in idx[:args.filter_by_median]]
+    print('lengths_in_tokens', lengths_in_tokens)
 
     # compile prompts
     # print('prompts', len(prompts), lens)
-    print('lengths_in_tokens', lengths_in_tokens)
     avg_soft_prompt = compiling.get_avg_soft_prompt(args.checkpoint, prompts)
     # print('avg_soft_prompt', avg_soft_prompt.shape)
 
