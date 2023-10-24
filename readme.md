@@ -1,11 +1,11 @@
-<h1 align="center"> Tree Prompting </h1>
+<h1 align="center"> 🌳 Tree Prompting 🌳 </h1>
 <p align="center"> Tree Prompting: Efficient Task Adaptation without Fine-Tuning, code for the <a href="https://arxiv.org/abs/2310.14034">Tree-prompt paper</a>. 
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-mit-blue.svg">
   <img src="https://img.shields.io/badge/python-3.6+-blue">
-  <img src="https://img.shields.io/pypi/v/imodelsx?color=green">  
+  <img src="https://img.shields.io/pypi/v/treeprompt?color=green">  
 </p>  
 
 <p align="center"> Tree Prompting uses training examples to learn a tree of prompts to make a classification, yielding higher accuracy and better efficiency that baseline ensembles.
