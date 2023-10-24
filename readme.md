@@ -1,5 +1,5 @@
 <h1 align="center"> Tree Prompting </h1>
-<p align="center"> Tree Prompting: Efficient Task Adaptation without Fine-Tuning, code for the <a href="">Tree-prompt paper</a>. 
+<p align="center"> Tree Prompting: Efficient Task Adaptation without Fine-Tuning, code for the <a href="https://arxiv.org/abs/2310.14034">Tree-prompt paper</a>. 
 </p>
 
 <p align="center">
@@ -74,11 +74,13 @@ plt.show()
 
 Reference:
 ```r
-@misc{ch2022augmenting,
+@misc{morris2023tree,
     title={Tree Prompting: Efficient Task Adaptation without Fine-Tuning},
+    author={John X. Morris and Chandan Singh and Alexander M. Rush and Jianfeng Gao and Yuntian Deng},
     year={2023},
+    eprint={2310.14034},
     archivePrefix={arXiv},
-    primaryClass={cs.AI}
+    primaryClass={cs.CL}
 }
 ```
 
