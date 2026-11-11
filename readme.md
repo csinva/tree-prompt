@@ -11,6 +11,10 @@
 <p align="center"> Tree Prompting uses training examples to learn a tree of prompts to make a classification, yielding higher accuracy and better efficiency that baseline ensembles.
 </p>
 
+### Method and related research
+
+Tree Prompting (EMNLP 2023) learns a decision tree whose branching decisions are prompted language-model calls, adapting the prompts and control flow while keeping the model weights fixed. The [LLM decision-tree guide](https://yuntiandeng.com/research/llm-decision-trees/) walks through an interactive routing example, dynamic prompt learning, inference costs, and connections to agentic classification.
+
 ### Quickstart
 
 Installation: `pip install treeprompt` (or clone this repo and `pip install -e .`)
@@ -73,14 +77,16 @@ plt.show()
 ```
 
 Reference:
-```r
-@misc{morris2023tree,
+```bibtex
+@inproceedings{morris2023tree,
     title={Tree Prompting: Efficient Task Adaptation without Fine-Tuning},
     author={John X. Morris and Chandan Singh and Alexander M. Rush and Jianfeng Gao and Yuntian Deng},
+    booktitle={Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing},
     year={2023},
-    eprint={2310.14034},
-    archivePrefix={arXiv},
-    primaryClass={cs.CL}
+    pages={6253--6267},
+    publisher={Association for Computational Linguistics},
+    doi={10.18653/v1/2023.emnlp-main.384},
+    url={https://aclanthology.org/2023.emnlp-main.384/}
 }
 ```
 
